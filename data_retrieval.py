@@ -127,6 +127,8 @@ def retrieve_data_from_location(data_filename, location_description, time_period
     # Retrieve the crossmodel indices in the database
     intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
 
+    print('intersecting_cells', intersecting_cells['geometry'].iloc[0])
+
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
     data = data[time_period]
