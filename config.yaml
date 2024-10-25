@@ -1,0 +1,11 @@
+models:
+    gen_model: "gpt-4o"
+datasets:
+    city: "chicago"
+    time: "2020"
+    dataset: "fwi"
+inference:
+    verbose: False
+    output_dir: 'output/'
+    save_output_response: True
+    output_file_name: 'conversation'
