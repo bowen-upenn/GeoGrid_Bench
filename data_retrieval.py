@@ -107,16 +107,12 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
 
     # Retrieve the Crossmodel indices from the intersecting cells
     crossmodel_indices = intersecting_cells['Crossmodel'].tolist()
+    print('crossmodel_indices', crossmodel_indices)
 
-    with open('./chat_history/crossmodels.txt', 'a') as f:
-        f.write(f"Crossmodels within a 36 km radius of location (lat: {lat}, lon: {lon}):\n")
-        for item in crossmodel_indices:
-            f.write("%s\n" % item)
-
-    return intersecting_cells
+    return intersecting_cells, crossmodel_indices
 
 
-def retrieve_data_from_location(data_filename, location_description, llm):
+def retrieve_data_from_location(data_filename, location_description, time_period, llm):
     """
     This function retrieves the tabular data of the location described in the description within a radius of 36 km.
     """
@@ -125,12 +121,14 @@ def retrieve_data_from_location(data_filename, location_description, llm):
 
     # Retrieve the latitude and longitude from the response
     location = get_lat_long(location_description, llm)
-    lat, lon = location['latitude'], location['longitude']
+    print('location', location)
+    lat, lon = location[0], location[1]
 
     # Retrieve the crossmodel indices in the database
-    intersecting_cells = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
+    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
 
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
-    print('data')
+    data = data[time_period]
+    print(data)
     return data

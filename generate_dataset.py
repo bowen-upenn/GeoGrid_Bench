@@ -17,5 +17,5 @@ def generate_dataset(args):
     for city in cities:
         for time in times:
             for dataset in datasets:
-                data = retrieve_data_from_location(dataset, city, llm)
+                data = retrieve_data_from_location(dataset, city, time, llm)
 

@@ -23,8 +23,8 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default="gpt-4o", help='Set LLM model. Choose from gpt-4-turbo, gpt-4o')
     parser.add_argument('--city', type=str, default="chicago", help='To set one city, use the format "chicago". '
                                                                     'To set two cities, use the format "[chicago,philadelphia]"')
-    parser.add_argument('--time', type=str, default="2010", help='To set one time, use the format "2010" or "mid_history". '
-                                                                 'To set two times, use the format "[2010,2012]" or "[mid_history,late_history]"')
+    parser.add_argument('--time', type=str, default="wildfire_autumn_Endc", help='To set one time, use the format "wildfire_autumn_Endc". '
+                                                                 'To set two times, use the format "[wildfire_autumn_Midc,wildfire_autumn_Endc]"')
     parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire.csv", help='To set one dataset, use the format "FireWeatherIndex_Wildfire.csv". '
                                                                    'To set two datasets, use the format "[FireWeatherIndex_Wildfire.csv,heatindex.csv]"')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
