@@ -1,5 +1,16 @@
 import ast
 import re
+import pandas as pd
+import argparse
+
+
+class Colors:
+    HEADER = '\033[95m'  # Purple
+    OKBLUE = '\033[94m'  # Blue
+    OKGREEN = '\033[92m'  # Green
+    WARNING = '\033[93m'  # Yellow
+    FAIL = '\033[91m'    # Red
+    ENDC = '\033[0m'     # Reset color
 
 
 def all_climrr_datasets():
@@ -40,3 +51,17 @@ def parse_inputs(args):
 
     city, time, dataset = input_strings[0], input_strings[1], input_strings[2]
     return city, time, dataset
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Command line arguments')
+    parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire", help='Name of the dataset')
+    cmd_args = parser.parse_args()
+
+    data_path = './data/climrr/' + cmd_args.dataset + '.csv'
+    print('Looking at all possible time frames of the dataset' + data_path)
+
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(data_path)
+    # Print all column names
+    print("Column names:", df.columns.tolist())

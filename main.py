@@ -25,7 +25,7 @@ if __name__ == "__main__":
                                                                     'To set two cities, use the format "[chicago,philadelphia]"')
     parser.add_argument('--time', type=str, default="wildfire_autumn_Endc", help='To set one time, use the format "wildfire_autumn_Endc". '
                                                                  'To set two times, use the format "[wildfire_autumn_Midc,wildfire_autumn_Endc]"')
-    parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire.csv", help='To set one dataset, use the format "FireWeatherIndex_Wildfire.csv". '
+    parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire", help='To set one dataset, use the format "FireWeatherIndex_Wildfire.csv". '
                                                                    'To set two datasets, use the format "[FireWeatherIndex_Wildfire.csv,heatindex.csv]"')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
     cmd_args = parser.parse_args()
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     args['models']['gen_model'] = cmd_args.model if cmd_args.model is not None else args['models']['gen_model']
     args['datasets']['city'] = cmd_args.city if cmd_args.city is not None else args['datasets']['city']
     args['datasets']['time'] = cmd_args.time if cmd_args.time is not None else args['datasets']['time']
-    args['datasets']['dataset'] = cmd_args.dataset if cmd_args.dataset is not None else args['datasets']['dataset']
+    args['datasets']['dataset'] = cmd_args.dataset + '.csv' if cmd_args.dataset is not None else args['datasets']['dataset']
     args['inference']['verbose'] = cmd_args.verbose if cmd_args.verbose is not None else args['inference']['verbose']
 
     torch.manual_seed(0)
