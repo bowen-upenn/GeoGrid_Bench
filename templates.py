@@ -8,28 +8,27 @@ class TemplateQuestionManager:
         # Store the template questions
         self.questions = {
             "basic": [
-                "Which region in the {specified_area} experienced the largest increase in {climate_variable} from {time_frame}?",
-                "What is the correlation between {climate_variable1} and {climate_variable2} in the {specified_area} during {season_or_year}?",
-                "What is the relationship between population density and {climate_variable} risk in {specified_area} by {time_frame}?",
-                "How has {climate_variable} changed between {time_frame1} and {time_frame2} in the {specified_region}?",
-                "What is the seasonal variation of {climate_variable} in {geography} during {time_frame}?",
-                "Which season in {time_frame} saw the highest levels of {climate_variable} in {geography}?",
+                "Which region in the {location} experienced the largest increase in {climate_variable} from {time_frame}?",
+                "What is the correlation between {climate_variable1} and {climate_variable2} in the {location} during {time_frame}?",
+                "What is the relationship between population density and {climate_variable} risk in {location} by {time_frame}?",
+                "How has {climate_variable} changed between {time_frame1} and {time_frame2} in the {location}?",
+                "What is the seasonal variation of {climate_variable} in {location} during {time_frame}?",
+                "Which season in {time_frame} saw the highest levels of {climate_variable} in {location}?",
                 "How does {climate_variable} compare between {location1} and {location2} during {time_frame}?",
-                "Which of {location1} or {location2} in {geography} experienced a greater change in {climate_variable} throughout {time_frame}?",
-                "How does the seasonal variation of {climate_variable} in {location1} compare to that in {location2} within {geography} for {time_frame}?"
+                "Which of {location1} or {location2} experienced a greater change in {climate_variable} throughout {time_frame}?",
+                "How does the seasonal variation of {climate_variable} in {location1} compare to that in {location2} within {location} for {time_frame}?"
             ],
             "harder": [
-                "How does the seasonal variation of {climate_variable1} in {location1} compare to {climate_variable2} in {location2} within {geography} for {time_frame}?",
-                "What are the differences in the annual trends of {climate_variable} between {location1} and {location2} in relation to the {socioeconomic_variable} within {geography} for {time_frame}?",
-                "How do trends in {elderly_population_rate} in {location1} and {location2} relate to the seasonal variation in {climate_variable} within {geography} for {time_frame}?",
+                "How does the seasonal variation of {climate_variable1} in {location1} compare to {climate_variable2} in {location2} for {time_frame}?",
+                "What are the differences in the annual trends of {climate_variable} between {location1} and {location2} in relation to the {socioeconomic_variable} for {time_frame}?",
+                "How do trends in {elderly_population_rate} in {location1} and {location2} relate to the seasonal variation in {climate_variable} for {time_frame}?",
                 "How do the rates of {no_vehicle_rate} and {single_unit_housing_rate} differ between {location1} and {location2} in relation to {climate_variable} patterns over {time_frame}?",
                 "To what extent does the {elderly_population_rate} in {location1} align with trends in {internet_access_rate} in {location2} and how do these socio-economic variables interact with changes in {climate_variable}?"
             ]
         }
 
         self.all_variables = {
-            "common": ['specified_area', 'climate_variable', 'climate_variable1', 'climate_variable2', 'time_frame', 'time_frame1', 'time_frame2',
-                      'season_or_year', 'geography', 'specified_region', 'location1', 'location2'],
+            "common": ['specified_area', 'climate_variable', 'climate_variable1', 'climate_variable2', 'time_frame', 'location', 'location1', 'location2'],
             "harder": ['socioeconomic_variable', 'elderly_population_rate', 'no_vehicle_rate', 'single_unit_housing_rate', 'internet_access_rate']
         }
 
