@@ -1,6 +1,8 @@
 import random
 import re
 import argparse
+import itertools
+
 import utils
 
 
@@ -110,6 +112,12 @@ class TemplateQuestionManager:
 
                                     'heating degree': {'historical period': 'hist',
                                                        'mid-century period': 'rcp85_midc'},
+
+                                    'annual total precipitation': {'historical period': 'hist',
+                                                                   'mid-century period (RCP4.5)': 'rcp45_midc',
+                                                                   'end-century period (RCP4.5)': 'rcp45_endc',
+                                                                   'mid-century period (RCP8.5)': 'rcp85_midc',
+                                                                   'end-century period (RCP8.5)': 'rcp85_endc'},
 
                                     'maximum seasonal temperature': {'spring in historical period': 'hist_spring',
                                                                      'spring in mid-century period (RCP8.5)': 'rcp85_midc_spring',
@@ -330,7 +338,8 @@ class TemplateQuestionManager:
         Yield questions one at a time, formatted with placeholders if applicable.
         """
         for template in questions:
-            yield template
+            required_variables = re.findall(r"\{(.*?)\}", template)
+            yield template, required_variables
 
 
     def get_random_question_and_variables(self, difficulty="basic"):
@@ -381,7 +390,21 @@ class LocationPicker:
             raise FileNotFoundError(f"Error loading data: {e}. Ensure all required files are present.")
 
 
-    def choose_random_location(self, level='', exclude=None):
+    def get_all_locations(self, level='city'):
+        """
+        Get all locations at the specified level.
+        """
+        assert level in ['state', 'county', 'city'], "Invalid level. Choose 'state', 'county', or 'city'."
+
+        if level == 'city':
+            return self.cities
+        elif level == 'county':
+            return self.counties
+        elif level == 'state':
+            return
+
+
+    def choose_random_location(self, level='city', exclude=None):
         """
         Randomly chooses either a state, county, or city name based on the specified parameters.
         For counties, formats the name appropriately if needed and appends ', USA'.
@@ -420,16 +443,11 @@ class LocationPicker:
             return chosen_state
 
 
-# Example Usage
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Command line arguments')
-    parser.add_argument('--geoscale', type=str, default="city", help='Select the geographical scale for the location: city, county, or state')
-    cmd_args = parser.parse_args()
-
-    template_question_manager = TemplateQuestionManager()
-    location_picker = LocationPicker()
-    location_picker.load_data()
-
+def generate_one_random_question(cmd_args, template_question_manager, location_picker):
+    """
+    Find a random value for each variable in each template question
+    and generate formatted questions.
+    """
     # Get a random question and the required variables for "basic" difficulty
     question, variables = template_question_manager.get_random_question_and_variables(difficulty="basic")
     print(f'{utils.Colors.OKGREEN}{"Random Question Template:"}{utils.Colors.ENDC}')
@@ -473,4 +491,112 @@ if __name__ == "__main__":
     print(formatted_question)
 
 
+def generate_all_combinations(cmd_args, template_question_manager, location_picker, verbose=False):
+    """
+    Iterate through all possible combinations of variables in each template question
+    and generate formatted questions.
+    """
+    # Set iterator for "basic" difficulty
+    iterator = template_question_manager.set_iterator(difficulty="basic")
+
+    for i, (question, variables) in enumerate(iterator):
+        if verbose:
+            print(f'{utils.Colors.OKGREEN}{"Question Template:"}{utils.Colors.ENDC}')
+            print(question)
+            print(f'{utils.Colors.OKGREEN}{"Required Variables:"}:{utils.Colors.ENDC}')
+            print(variables)
+
+        # Generate all possible values for each variable
+        variable_options = {}
+        for variable in variables:
+            if variable == 'climate_variable1':
+                variable_options['climate_variable1'] = list(template_question_manager.climate_variables.keys())
+            elif variable == 'climate_variable2':
+                variable_options['climate_variable2'] = [
+                    var for var in template_question_manager.climate_variables.keys()
+                ]
+            elif variable == 'location1':
+                variable_options['location1'] = location_picker.get_all_locations(level=cmd_args.geoscale)
+            elif variable == 'location2':
+                variable_options['location2'] = variable_options['location1']
+            elif variable == 'time_frame1':
+                # Time frames depend on the selected climate_variable1
+                variable_options['time_frame1'] = [
+                    list(template_question_manager.allowed_time_frames[climate_var].keys())
+                    for climate_var in variable_options.get('climate_variable1', [])
+                ]
+            elif variable == 'time_frame2':
+                # time_frame2 uses the same valid time frames as time_frame1
+                variable_options['time_frame2'] = variable_options.get('time_frame1', [])
+            else:
+                raise ValueError(f"Variable not implemented: {variable}")
+
+        # Generate all combinations of variable values
+        variable_combinations = itertools.product(
+            *[variable_options[var] for var in variables]
+        )
+
+        # Iterate through each combination and format the question
+        j = 0
+        for combination in variable_combinations:
+            if cmd_args.max != -1 and j >= cmd_args.max:
+                break
+
+            filled_values = dict(zip(variables, combination))
+
+            # Validate any dependent variable constraints
+            if 'climate_variable2' in filled_values:
+                if filled_values['climate_variable2'] == filled_values['climate_variable1']:
+                    continue  # Skip invalid combinations
+
+            if 'location2' in filled_values:
+                if filled_values['location2'] == filled_values['location1']:
+                    continue  # Skip invalid combinations
+
+            # Decompose the time frames into individual questions
+            if 'time_frame1' in filled_values:
+                for time_frame in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
+                    filled_values['time_frame1'] = time_frame
+
+                    if 'time_frame2' in filled_values:
+                        for time_frame2 in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
+                            if time_frame2 == filled_values['time_frame1']:
+                                continue
+                            filled_values['time_frame2'] = time_frame2
+
+                            # Format the question
+                            j += 1
+                            formatted_question = question.format(**filled_values)
+                            print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                            print(formatted_question)
+                    else:
+                        # Format the question
+                        j += 1
+                        formatted_question = question.format(**filled_values)
+                        print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                        print(formatted_question)
+            else:
+                # Format the question
+                j += 1
+                formatted_question = question.format(**filled_values)
+                print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                print(formatted_question)
+
+
+# Example Usage
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Command line arguments')
+    parser.add_argument('--geoscale', type=str, default="city", help='Select the geographical scale for the location: city, county, or state')
+    parser.add_argument('--mode', type=str, default="random", help='Select the mode: random or iterate')
+    parser.add_argument('--max', type=int, default=-1, help='Select the maximum number of questions to generate if in iterate mode. Default is -1, which generates all possible questions.')
+    cmd_args = parser.parse_args()
+
+    template_question_manager = TemplateQuestionManager()
+    location_picker = LocationPicker()
+    location_picker.load_data()
+
+    if cmd_args.mode == 'random':
+        generate_one_random_question(cmd_args, template_question_manager, location_picker)
+    else:
+        generate_all_combinations(cmd_args, template_question_manager, location_picker)
 
