@@ -81,7 +81,7 @@ def get_lat_long(location_description, llm):
             return None
 
 
-def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs):
+def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, verbose=False):
     '''
     Retrieves all Crossmodel indices within a specified radius of a given latitude and longitude.
 
@@ -114,7 +114,8 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
 
     # Retrieve the Crossmodel indices from the intersecting cells
     crossmodel_indices = intersecting_cells['Crossmodel'].tolist()
-    print('crossmodel_indices', crossmodel_indices)
+    if verbose:
+        print('crossmodel_indices', crossmodel_indices)
 
     return intersecting_cells, crossmodel_indices
 
@@ -137,11 +138,11 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     lat, lon = location[0], location[1]
 
     # Retrieve the crossmodel indices in the database
-    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
+    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, verbose)
 
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
-    data = data[time_period]
+    data = data[time_period].values
     if verbose:
         print(data)
     return data
@@ -153,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument('--city', type=str, default="Chicago", help='To set the city. If you need to enter a space, use the quotes like "Los Angeles, CA"')
     parser.add_argument('--time', type=str, default="'spring in historical period'", help='To set the time period. Check all available time periods in climate_variables in utils.py')
     parser.add_argument('--var', type=str, default="'fire weather index'", help='To set the climate variable. Check all available variables in full_time_frames in utils.py')
+    parser.add_argument('--geometry', type=str, default="square", help='To set the geometry of the location. Choose from "square", "circle", or "real"')
     parser.add_argument('--verbose', type=bool, default=False, help='To set the verbosity of the output')
     cmd_args = parser.parse_args()
 
