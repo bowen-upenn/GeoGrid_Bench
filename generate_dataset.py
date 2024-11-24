@@ -28,29 +28,29 @@ def generate_dataset(args):
         template = data_sample['template']
 
         # Load data for climate_variable1
-        data_filename = utils.climate_variables[filled_values['climate_variable1']]
+        climate_variable = filled_values['climate_variable1']
         location_description = filled_values['location1']
         time_period = filled_values['time_frame1']
-        data_var1 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+        data_var1 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
 
         # Load data for climate_variable2
         data_var2 = None
         if 'climate_variable2' in filled_values:
-            data_filename = utils.climate_variables[filled_values['climate_variable2']]
+            climate_variable = filled_values['climate_variable2']
             location_description = filled_values['location2'] if 'location2' in filled_values else 'location1'
             time_period = filled_values['time_frame2'] if 'time_frame2' in filled_values else 'time_frame1'
-            data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+            data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
         else:
             if 'location2' in filled_values:
                 # Same climate variable but at two different locations
                 assert 'time_frame2' not in filled_values
                 location_description = filled_values['location2']
-                data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+                data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
             elif 'time_frame2' in filled_values:
                 # Same climate variable but at two different time periods
                 assert 'location2' not in filled_values
                 time_period = filled_values['time_frame2']
-                data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+                data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
 
         if args['inference']['verbose']:
             print(f'{utils.Colors.OKGREEN}Question:{utils.Colors.ENDC}')

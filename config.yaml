@@ -2,6 +2,6 @@ models:
     llm: "gpt-4o"
 inference:
     verbose: False
+    num_samples: -1
     output_dir: 'output/'
     save_output_response: True
-    output_file_name: 'conversation'

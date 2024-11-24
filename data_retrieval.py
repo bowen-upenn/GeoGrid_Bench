@@ -13,6 +13,7 @@ import ssl
 import geopy.geocoders
 from geopy.geocoders import Nominatim
 
+import utils
 from query_llm import QueryLLM
 
 
@@ -20,10 +21,12 @@ def initialize_data(data_filename):
     grid_cells_gdf = gpd.read_file('./data/climrr/GridCellsShapefile/GridCells.shp')
     grid_cells_crs = grid_cells_gdf.crs
 
-    if data_filename == 'FireWeatherIndex_Wildfire.csv':
-        wildfire_df = pd.read_csv('./data/climrr/FireWeatherIndex_Wildfire.csv')
+    if not data_filename.startswith('./data/climrr/'):
+        data_filename = f'./data/climrr/{data_filename}'
+    try:
+        wildfire_df = pd.read_csv(data_filename)
         data_df = wildfire_df
-    else:
+    except FileNotFoundError:
         raise ValueError(f"Invalid data filename {data_filename}.")
 
     return grid_cells_gdf, grid_cells_crs, data_df
@@ -116,38 +119,42 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
     return intersecting_cells, crossmodel_indices
 
 
-def retrieve_data_from_location(data_filename, location_description, time_period, llm):
+def retrieve_data_from_location(variable, location_description, time_period, llm, verbose=False):
     """
     This function retrieves the tabular data of the location described in the description within a radius of 36 km.
     """
+    # Convert the format of arguments
+    data_filename = utils.climate_variables[variable]
+    time_period = utils.full_time_frames[variable][time_period]
+
     # Load the grid cells data
     grid_cells_gdf, grid_cells_crs, data_df = initialize_data(data_filename)
 
     # Retrieve the latitude and longitude from the response
     location = get_lat_long(location_description, llm)
-    print('location', location)
+    if verbose:
+        print('location', location)
     lat, lon = location[0], location[1]
 
     # Retrieve the crossmodel indices in the database
     intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs)
 
-    print('intersecting_cells', intersecting_cells['geometry'].iloc[0])
-
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
     data = data[time_period]
-    print(data)
+    if verbose:
+        print(data)
     return data
 
 
 if __name__ == "__main__":
     # Command-line argument parsing
     parser = argparse.ArgumentParser(description='Command line arguments')
-    parser.add_argument('--city', type=str, default="chicago", help='To set the city. If you need to enter a space, use the quotes like "Los Angeles, CA"')
-    parser.add_argument('--time', type=str, default="wildfire_autumn_Endc", help='To set the time period')
-    parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire", help='To set the dataset name')
+    parser.add_argument('--city', type=str, default="Chicago", help='To set the city. If you need to enter a space, use the quotes like "Los Angeles, CA"')
+    parser.add_argument('--time', type=str, default="'spring in historical period'", help='To set the time period. Check all available time periods in climate_variables in utils.py')
+    parser.add_argument('--var', type=str, default="'fire weather index'", help='To set the climate variable. Check all available variables in full_time_frames in utils.py')
+    parser.add_argument('--verbose', type=bool, default=False, help='To set the verbosity of the output')
     cmd_args = parser.parse_args()
-    cmd_args.dataset += '.csv'
 
     try:
         with open('config.yaml', 'r') as file:
@@ -156,4 +163,4 @@ if __name__ == "__main__":
         print('Error reading the config file')
     llm = QueryLLM(args)
 
-    retrieve_data_from_location(cmd_args.dataset, cmd_args.city, cmd_args.time, llm)
+    retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.verbose)

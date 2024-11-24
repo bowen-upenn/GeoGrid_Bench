@@ -36,22 +36,7 @@ class TemplateQuestionManager:
             "harder": ['socioeconomic_variable', 'elderly_population_rate', 'no_vehicle_rate', 'single_unit_housing_rate', 'internet_access_rate']
         }
         
-        self.climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
-                                  'minimum annual temperature': './data/climrr/AnnualTemperatureMinimum.csv',
-                                  'consecutive days with no precipitation': './data/climrr/ConsecutiveDayswithNoPrecipitation.csv',
-                                  'cooling degree days': './data/climrr/CoolingDegreeDays.csv',
-                                  'fire weather index': './data/climrr/FireWeatherIndex_Wildfire.csv',
-                                  'maximum daily heat index': './data/climrr/heatindex.csv',
-                                  'maximum seasonal heat index': './data/climrr/heatindex.csv',
-                                  'number of days with daily heat index above 95 F': './data/climrr/heatindex.csv',
-                                  'number of days with daily heat index above 105 F': './data/climrr/heatindex.csv',
-                                  'number of days with daily heat index above 115 F': './data/climrr/heatindex.csv',
-                                  'number of days with daily heat index above 125 F': './data/climrr/heatindex.csv',
-                                  'heating degree': './data/climrr/HeatingDegreeDays.csv',
-                                  'annual total precipitation': './data/climrr/Precipitation_inches_AnnualTotal.csv',
-                                  'maximum seasonal temperature': './data/climrr/SeasonalTemperatureMaximum.csv',
-                                  'minimum seasonal temperature': './data/climrr/SeasonalTemperatureMinimum.csv',
-                                  'wind speed': './data/climrr/WindSpeed.csv'}
+        self.climate_variables = utils.climate_variables
 
         self.allowed_time_frames = {'maximum annual temperature': {'historical period': 'hist',
                                                                    'mid-century period (RCP4.5)': 'rcp45_midc',
