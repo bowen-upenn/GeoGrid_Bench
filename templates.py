@@ -479,9 +479,16 @@ def generate_one_random_question(cmd_args, template_question_manager, location_p
                 filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
             else:
                 assert 'time_frame1' in filled_values, "time_frame1 must be set before time_frame2"
-                filled_values['time_frame2'] = random.choice(
-                    [var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys() if var != filled_values['time_frame1']]
-                )
+
+                # Filter time_frame2 to avoid conflicting RCP scenarios
+                time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in filled_values['time_frame1'] else 'RCP8.5' if 'RCP8.5' in filled_values['time_frame1'] else None
+                filled_values['time_frame2'] = random.choice([
+                    var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()
+                    if var != filled_values['time_frame1'] and (
+                            (time_frame1_rcp == 'RCP4.5' and 'RCP8.5' not in var) or
+                            (time_frame1_rcp == 'RCP8.5' and 'RCP4.5' not in var)
+                    )
+                ])
         else:
             raise ValueError(f"Variable not implemented: {variable}")
 
@@ -557,11 +564,18 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             if 'time_frame1' in filled_values:
                 for time_frame in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
                     filled_values['time_frame1'] = time_frame
+                    time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in time_frame else 'RCP8.5' if 'RCP8.5' in time_frame else None
 
                     if 'time_frame2' in filled_values:
                         for time_frame2 in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
                             if time_frame2 == filled_values['time_frame1']:
                                 continue
+                            # Avoid conflicting RCP scenarios between time_frame1 and time_frame2
+                            if time_frame1_rcp == 'RCP4.5' and 'RCP8.5' in time_frame2:
+                                continue
+                            if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
+                                continue
+
                             filled_values['time_frame2'] = time_frame2
 
                             # Format the question
