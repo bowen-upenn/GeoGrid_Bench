@@ -8,14 +8,58 @@ from query_llm import QueryLLM
 import utils
 
 
+def dataloader(json_file_path):
+    try:
+        with open(json_file_path, 'r') as file:
+            data = json.load(file)
+            for entry in data:
+                yield entry
+    except FileNotFoundError:
+        print(f"Error: The file {json_file_path} was not found.")
+    except json.JSONDecodeError:
+        print(f"Error: Could not decode the JSON file {json_file_path}.")
+
+
 def generate_dataset(args):
-    cities, times, datasets = utils.parse_inputs(args)
-    print(f"Generating dataset samples for {cities} at {times} with database {datasets}")
-
     llm = QueryLLM(args)
+    for i, data_sample in enumerate(dataloader('./data/all_filled_questions.json')):
+        question = data_sample['question']
+        filled_values = data_sample['filled_values']
+        template = data_sample['template']
 
-    for city in cities:
-        for time in times:
-            for dataset in datasets:
-                data = retrieve_data_from_location(dataset, city, time, llm)
+        # Load data for climate_variable1
+        data_filename = utils.climate_variables[filled_values['climate_variable1']]
+        location_description = filled_values['location1']
+        time_period = filled_values['time_frame1']
+        data_var1 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
 
+        # Load data for climate_variable2
+        data_var2 = None
+        if 'climate_variable2' in filled_values:
+            data_filename = utils.climate_variables[filled_values['climate_variable2']]
+            location_description = filled_values['location2'] if 'location2' in filled_values else 'location1'
+            time_period = filled_values['time_frame2'] if 'time_frame2' in filled_values else 'time_frame1'
+            data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+        else:
+            if 'location2' in filled_values:
+                # Same climate variable but at two different locations
+                assert 'time_frame2' not in filled_values
+                location_description = filled_values['location2']
+                data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+            elif 'time_frame2' in filled_values:
+                # Same climate variable but at two different time periods
+                assert 'location2' not in filled_values
+                time_period = filled_values['time_frame2']
+                data_var2 = retrieve_data_from_location(data_filename, location_description, time_period, llm)
+
+        if args['inference']['verbose']:
+            print(f'{utils.Colors.OKGREEN}Question:{utils.Colors.ENDC}')
+            print(question)
+            print(f'{utils.Colors.OKGREEN}Filled values:{utils.Colors.ENDC}')
+            print(filled_values)
+
+            print(f'{utils.Colors.OKGREEN}Data 1:{utils.Colors.ENDC}')
+            print(data_var1)
+            if data_var2 is not None:
+                print(f'{utils.Colors.OKGREEN}Data 2:{utils.Colors.ENDC}')
+                print(data_var2)

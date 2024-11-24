@@ -5,11 +5,15 @@ import geopandas as gpd
 from geopy.geocoders import Nominatim
 import pandas as pd
 from shapely.geometry import Point
+import argparse
+import yaml
 
 import certifi
 import ssl
 import geopy.geocoders
 from geopy.geocoders import Nominatim
+
+from query_llm import QueryLLM
 
 
 def initialize_data(data_filename):
@@ -134,3 +138,22 @@ def retrieve_data_from_location(data_filename, location_description, time_period
     data = data[time_period]
     print(data)
     return data
+
+
+if __name__ == "__main__":
+    # Command-line argument parsing
+    parser = argparse.ArgumentParser(description='Command line arguments')
+    parser.add_argument('--city', type=str, default="chicago", help='To set the city. If you need to enter a space, use the quotes like "Los Angeles, CA"')
+    parser.add_argument('--time', type=str, default="wildfire_autumn_Endc", help='To set the time period')
+    parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire", help='To set the dataset name')
+    cmd_args = parser.parse_args()
+    cmd_args.dataset += '.csv'
+
+    try:
+        with open('config.yaml', 'r') as file:
+            args = yaml.safe_load(file)
+    except Exception as e:
+        print('Error reading the config file')
+    llm = QueryLLM(args)
+
+    retrieve_data_from_location(cmd_args.dataset, cmd_args.city, cmd_args.time, llm)

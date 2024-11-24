@@ -25,7 +25,7 @@ class QueryLLM:
             name="Data Analyzer",
             instructions="You are a helpful assistant that analyze climate data using language, programming codes, and tabular data.",
             tools=[{"type": "code_interpreter"}],
-            model=self.args['models']['gen_model'],
+            model=self.args['models']['llm'],
         )
         self.thread = None
 
@@ -41,7 +41,7 @@ class QueryLLM:
 
         if not assistant:
             response = self.client.chat.completions.create(
-                model=self.args['models']['gen_model'],
+                model=self.args['models']['llm'],
                 messages=[{"role": "user",
                            "content": prompt}],
                 max_tokens=300

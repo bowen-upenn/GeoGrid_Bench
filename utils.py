@@ -4,6 +4,24 @@ import pandas as pd
 import argparse
 
 
+climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
+                     'minimum annual temperature': './data/climrr/AnnualTemperatureMinimum.csv',
+                     'consecutive days with no precipitation': './data/climrr/ConsecutiveDayswithNoPrecipitation.csv',
+                     'cooling degree days': './data/climrr/CoolingDegreeDays.csv',
+                     'fire weather index': './data/climrr/FireWeatherIndex_Wildfire.csv',
+                     'maximum daily heat index': './data/climrr/heatindex.csv',
+                     'maximum seasonal heat index': './data/climrr/heatindex.csv',
+                     'number of days with daily heat index above 95 F': './data/climrr/heatindex.csv',
+                     'number of days with daily heat index above 105 F': './data/climrr/heatindex.csv',
+                     'number of days with daily heat index above 115 F': './data/climrr/heatindex.csv',
+                     'number of days with daily heat index above 125 F': './data/climrr/heatindex.csv',
+                     'heating degree': './data/climrr/HeatingDegreeDays.csv',
+                     'annual total precipitation': './data/climrr/Precipitation_inches_AnnualTotal.csv',
+                     'maximum seasonal temperature': './data/climrr/SeasonalTemperatureMaximum.csv',
+                     'minimum seasonal temperature': './data/climrr/SeasonalTemperatureMinimum.csv',
+                     'wind speed': './data/climrr/WindSpeed.csv'}
+
+
 class Colors:
     HEADER = '\033[95m'  # Purple
     OKBLUE = '\033[94m'  # Blue

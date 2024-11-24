@@ -1,9 +1,5 @@
 models:
-    gen_model: "gpt-4o"
-datasets:
-    city: "chicago"
-    time: "2020"
-    dataset: "fwi"
+    llm: "gpt-4o"
 inference:
     verbose: False
     output_dir: 'output/'
