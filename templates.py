@@ -2,6 +2,7 @@ import random
 import re
 import argparse
 import itertools
+import json
 
 import utils
 
@@ -498,20 +499,18 @@ def generate_one_random_question(cmd_args, template_question_manager, location_p
     print(formatted_question)
 
 
-def generate_all_combinations(cmd_args, template_question_manager, location_picker, verbose=False):
+def generate_all_combinations(cmd_args, template_question_manager, location_picker):
     """
     Iterate through all possible combinations of variables in each template question
     and generate formatted questions.
     """
     # Set iterator for "basic" difficulty
     iterator = template_question_manager.set_iterator(difficulty="basic")
+    data_collections = []
 
     for i, (question, variables) in enumerate(iterator):
-        if verbose:
-            print(f'{utils.Colors.OKGREEN}{"Question Template:"}{utils.Colors.ENDC}')
-            print(question)
-            print(f'{utils.Colors.OKGREEN}{"Required Variables:"}:{utils.Colors.ENDC}')
-            print(variables)
+        if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
+            break
 
         # Generate all possible values for each variable
         variable_options = {}
@@ -544,9 +543,8 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
         )
 
         # Iterate through each combination and format the question
-        j = 0
         for combination in variable_combinations:
-            if cmd_args.max != -1 and j >= cmd_args.max:
+            if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
                 break
 
             filled_values = dict(zip(variables, combination))
@@ -563,6 +561,9 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             # Decompose the time frames into individual questions
             if 'time_frame1' in filled_values:
                 for time_frame in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
+                    if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
+                        break
+
                     filled_values['time_frame1'] = time_frame
                     time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in time_frame else 'RCP8.5' if 'RCP8.5' in time_frame else None
 
@@ -579,22 +580,33 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                             filled_values['time_frame2'] = time_frame2
 
                             # Format the question
-                            j += 1
                             formatted_question = question.format(**filled_values)
-                            print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
-                            print(formatted_question)
+                            data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                            if cmd_args.verbose:
+                                print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                                print(formatted_question)
                     else:
                         # Format the question
-                        j += 1
                         formatted_question = question.format(**filled_values)
-                        print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
-                        print(formatted_question)
+                        data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                        if cmd_args.verbose:
+                            print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                            print(formatted_question)
             else:
                 # Format the question
-                j += 1
                 formatted_question = question.format(**filled_values)
-                print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
-                print(formatted_question)
+                data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                if cmd_args.verbose:
+                    print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+                    print(formatted_question)
+
+            # Save the data collections to a JSON file
+            with open('./data/all_filled_questions.json', 'w') as json_file:
+                json.dump(data_collections, json_file, indent=4)
+
+            if cmd_args.verbose:
+                print(f'{utils.Colors.OKGREEN}Data Collections:{utils.Colors.ENDC}')
+                print(data_collections)
 
 
 # Example Usage
@@ -603,6 +615,7 @@ if __name__ == "__main__":
     parser.add_argument('--geoscale', type=str, default="city", help='Select the geographical scale for the location: city, county, or state')
     parser.add_argument('--mode', type=str, default="random", help='Select the mode: random or iterate')
     parser.add_argument('--max', type=int, default=-1, help='Select the maximum number of questions to generate if in iterate mode. Default is -1, which generates all possible questions.')
+    parser.add_argument('--verbose', type=bool, default=False, help='Select whether to print the generated questions. Default is False.')
     cmd_args = parser.parse_args()
 
     template_question_manager = TemplateQuestionManager()
