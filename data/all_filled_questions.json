@@ -25,5 +25,68 @@
             "time_frame1": "end-century period (RCP4.5)"
         },
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during mid-century period (RCP8.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "mid-century period (RCP8.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during end-century period (RCP8.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "end-century period (RCP8.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during historical period?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "historical period"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during mid-century period (RCP4.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "mid-century period (RCP4.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during end-century period (RCP4.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "end-century period (RCP4.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during mid-century period (RCP8.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "mid-century period (RCP8.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during end-century period (RCP8.5)?",
+        "filled_values": {
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "end-century period (RCP8.5)"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     }
 ]
