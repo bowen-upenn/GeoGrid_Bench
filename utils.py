@@ -346,7 +346,41 @@ def parse_inputs(args):
     return city, time, dataset
 
 
+def reformat_to_2d_table(data, crossmodel_indices):
+    # Extract rows and columns from crossmodel_indices
+    rows = [int(index[1:].split('C')[0]) for index in crossmodel_indices]
+    cols = [int(index.split('C')[1]) for index in crossmodel_indices]
+
+    # Create a DataFrame indexed by rows and columns
+    df = pd.DataFrame({'Row': rows, 'Col': cols, 'Value': data})
+
+    # Pivot the DataFrame to create a 2D table
+    pivot_table = df.pivot(index='Row', columns='Col', values='Value')
+
+    # Fill missing values with NaN and sort rows and columns
+    pivot_table = pivot_table.sort_index().sort_index(axis=1)
+
+    # Rename the row-column index for a single-line header
+    pivot_table.columns.name = None  # Remove 'Col' label
+    pivot_table.index.name = None  # Remove 'Row' label
+
+    # Prepare the string output
+    header = "Row\\Col " + "".join(f"{col:>10}" for col in pivot_table.columns) + "\n"
+    rows_output = "\n".join(
+        f"{idx:<8}" + "".join(
+            f"{value:>10.5f}" if not pd.isna(value) else f"{'NaN':>10}"
+            for value in row
+        )
+        for idx, row in pivot_table.iterrows()
+    )
+    output_string = header + rows_output
+    return output_string
+
+
 if __name__ == '__main__':
+    """
+    This main function helps you visualize all possible time frames of a given dataset
+    """
     parser = argparse.ArgumentParser(description='Command line arguments')
     parser.add_argument('--dataset', type=str, default="FireWeatherIndex_Wildfire", help='Name of the dataset')
     cmd_args = parser.parse_args()

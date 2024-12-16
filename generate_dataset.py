@@ -31,7 +31,8 @@ def generate_dataset(args):
         climate_variable = filled_values['climate_variable1']
         location_description = filled_values['location1']
         time_period = filled_values['time_frame1']
-        data_var1 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
+        data_var1, crossmodel_indices1 = retrieve_data_from_location(climate_variable, location_description, time_period, llm, args['inference']['geometry'], args['inference']['radius'])
+        data_var1 = utils.reformat_to_2d_table(data_var1, crossmodel_indices1)
 
         # Load data for climate_variable2
         data_var2 = None
@@ -39,18 +40,21 @@ def generate_dataset(args):
             climate_variable = filled_values['climate_variable2']
             location_description = filled_values['location2'] if 'location2' in filled_values else 'location1'
             time_period = filled_values['time_frame2'] if 'time_frame2' in filled_values else 'time_frame1'
-            data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
+            data_var2, crossmodel_indices2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm, args['inference']['geometry'], args['inference']['radius'])
+            data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
         else:
             if 'location2' in filled_values:
                 # Same climate variable but at two different locations
                 assert 'time_frame2' not in filled_values
                 location_description = filled_values['location2']
-                data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
+                data_var2, crossmodel_indices2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm, args['inference']['geometry'], args['inference']['radius'])
+                data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
             elif 'time_frame2' in filled_values:
                 # Same climate variable but at two different time periods
                 assert 'location2' not in filled_values
                 time_period = filled_values['time_frame2']
-                data_var2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm)
+                data_var2, crossmodel_indices2 = retrieve_data_from_location(climate_variable, location_description, time_period, llm, args['inference']['geometry'], args['inference']['radius'])
+                data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
 
         if args['inference']['verbose']:
             print(f'{utils.Colors.OKGREEN}Question:{utils.Colors.ENDC}')

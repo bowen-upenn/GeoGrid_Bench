@@ -154,46 +154,8 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
 
     return intersecting_cells, crossmodel_indices
 
-# def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, verbose=False):
-#     '''
-#     Retrieves all Crossmodel indices within a specified radius of a given latitude and longitude.
-#
-#     Parameters:
-#     - lat: Latitude of the location.
-#     - lon: Longitude of the location.
-#     - radius_km: The radius in kilometers around the point to retrieve Crossmodel indices.
-#     - grid_cells_gdf: GeoDataFrame of the grid cells.
-#     - grid_cells_crs: Coordinate Reference System (CRS) of the grid cells.
-#
-#     Returns:
-#     - A list containing the Crossmodel indices for the grid cells within the specified radius.
-#     '''
-#     # Convert the radius in kilometers to meters (as most CRS use meters)
-#     radius_meters = 36 * 1000
-#
-#     # Create a point from the given latitude and longitude
-#     point = Point(lon, lat)
-#     point_gseries = gpd.GeoSeries([point], crs="EPSG:4326")  # Assume input is in WGS84
-#
-#     # Transform the point to match the grid cell CRS
-#     point_transformed = point_gseries.to_crs(grid_cells_crs)
-#
-#     # Create a buffer around the point in the correct CRS
-#     buffer = point_transformed.buffer(radius_meters)
-#     buffer = buffer.to_crs(grid_cells_crs)
-#
-#     # Find grid cells that intersect the buffer area
-#     intersecting_cells = grid_cells_gdf[grid_cells_gdf.intersects(buffer.geometry[0])]
-#
-#     # Retrieve the Crossmodel indices from the intersecting cells
-#     crossmodel_indices = intersecting_cells['Crossmodel'].tolist()
-#     if verbose:
-#         print('crossmodel_indices', crossmodel_indices)
-#
-#     return intersecting_cells, crossmodel_indices
 
-
-def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, verbose=False):
+def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, radius=36, verbose=False):
     """
     This function retrieves the tabular data of the location described in the description within a radius of 36 km.
     """
@@ -211,14 +173,14 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     lat, lon = location[0], location[1]
 
     # Retrieve the crossmodel indices in the database
-    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, verbose=verbose)
+    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
 
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
     data = data[time_period].values
     if verbose:
         print(data)
-    return data
+    return data, crossmodel_indices
 
 
 if __name__ == "__main__":
@@ -228,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument('--time', type=str, default="'spring in historical period'", help='To set the time period. Check all available time periods in climate_variables in utils.py')
     parser.add_argument('--var', type=str, default="'fire weather index'", help='To set the climate variable. Check all available variables in full_time_frames in utils.py')
     parser.add_argument('--geometry', type=str, default="square", help='To set the geometry of the location. Choose from "square", "circular", or "real"')
+    parser.add_argument('--radius', type=int, default=36, help='To set the radius or edge size of the location in km')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
 
     cmd_args = parser.parse_args()
@@ -242,4 +205,6 @@ if __name__ == "__main__":
         print('Error reading the config file')
     llm = QueryLLM(args)
 
-    retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.verbose)
+    data, crossmodel_indices = retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.radius, cmd_args.verbose)
+    pivot_table = utils.reformat_to_2d_table(data, crossmodel_indices)
+    print(pivot_table)

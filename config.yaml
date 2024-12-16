@@ -3,5 +3,7 @@ models:
 inference:
     verbose: False
     num_samples: -1
+    geometry: 'circular'
+    radius: 36
     output_dir: 'output/'
     save_output_response: True
