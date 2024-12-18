@@ -5,8 +5,9 @@ def prompt_to_extract_location(location_description):
 
 
 def prompt_to_rephrase_question(question):
-    message = "Rewrite this question to provide real-world context by framing it as if a specific professional is asking it in a particular situation, " \
-              "formatted as a single-string question with no additional explanation.\n\nHere is current version of the question: " + question
+    message = "Rewrite this question to provide real-world context by framing it as if a specific professional is asking it in a particular situation. " \
+              "Please also rephrase the question without altering the meanings, and format it as a single-string question with no additional explanation." \
+              "\n\nHere is current version of the question: " + question
     return message
 
 

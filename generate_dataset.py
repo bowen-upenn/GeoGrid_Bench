@@ -66,21 +66,21 @@ def generate_dataset(args):
                 data_var2, crossmodel_indices2, latlong2 = retrieve_data_from_location(climate_variable, location_description2, time_period, llm, args['inference']['geometry'], args['inference']['radius'])
                 data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
 
-        if args['inference']['verbose']:
-            print(f'{utils.Colors.OKGREEN}Question:{utils.Colors.ENDC}')
-            print(question)
-            print(f'{utils.Colors.OKGREEN}Rephrased question:{utils.Colors.ENDC}')
-            print(rephrased_question)
-            print(f'{utils.Colors.OKGREEN}Filled values:{utils.Colors.ENDC}')
-            print(filled_values)
+        qa = {"question": question, "rephrased_question": rephrased_question, "filled_values": filled_values, "template": template, "data_var1": data_var1, "latlong1": latlong1}
+        if data_var2 is not None:
+            qa["data_var2"] = data_var2
 
-            print(f'{utils.Colors.OKGREEN}Data 1:{utils.Colors.ENDC}')
-            print(data_var1)
-            if data_var2 is not None:
-                print(f'{utils.Colors.OKGREEN}Data 2:{utils.Colors.ENDC}')
-                print(data_var2)
+        answers = {"relative_locations": {}, "place_names": {}}
+        correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1)
+        answers["relative_locations"] = {"correct_answer": correct_answer_relative_locations, "incorrect_answers": incorrect_answers_relative_locations}
 
-        oracle.oracle_codes(template, data_var1)
         heatmap, overlay, overlay_path, overlay_width, overlay_height = visualization.visualize_grids(data_var1, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
+
         ocr_results = ppocr.run_ocr_detection(overlay_path)
-        visualization.classify_bounding_boxes_by_color(llm, overlay, ocr_results, location_description1, verbose=args['inference']['verbose'])
+        red_set, blue_set = visualization.classify_bounding_boxes_by_color(llm, overlay, ocr_results, location_description1)
+        correct_answer_place_names, incorrect_answers_place_names = utils.randomly_sample_place_names(red_set, blue_set)
+        answers["place_names"] = {"correct_answer": correct_answer_place_names, "incorrect_answers": incorrect_answers_place_names}
+
+        qa["answers"] = answers
+        if args['inference']['verbose']:
+            utils.print_qa(qa)

@@ -164,8 +164,6 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
 
     # Retrieve the latitude and longitude from the response
     latlong = get_lat_long(location_description, llm)
-    # if verbose:
-    print('latlong', latlong)
     lat, lon = latlong[0], latlong[1]
 
     # Retrieve the crossmodel indices in the database

@@ -2,6 +2,7 @@ import ast
 import re
 import pandas as pd
 import argparse
+import random
 
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
@@ -424,6 +425,55 @@ def reformat_to_2d_table(data, crossmodel_indices):
 
     pivot_table = find_largest_rectangle(pivot_table)
     return pivot_table
+
+
+def randomly_sample_place_names(red_set, blue_set):
+    # Randomly select up to 3 strings from the red_set as the correct answer
+    correct_answer = random.sample(red_set, min(3, len(red_set)))
+
+    # Randomly generate 3 incorrect options
+    incorrect_answers = []
+    for _ in range(3):
+        # Select up to 3 strings from blue_set
+        blue_sample = random.sample(blue_set, min(3, len(blue_set)))
+        # Optionally add 1 string from red_set to make it more challenging
+        if random.choice([True, False]) and red_set:
+            blue_sample.append(random.choice(red_set))
+        random.shuffle(blue_sample)  # Shuffle to mix red and blue selections
+        incorrect_answers.append(blue_sample)
+
+    return correct_answer, incorrect_answers
+
+
+def print_qa(qa):
+    question, rephrased_question, filled_values, data_var1, answers, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['answers'], qa['latlong1']
+    data_var2 = qa['data_var2'] if 'data_var2' in qa else None
+    correct_answer_relative_locations, incorrect_answers_relative_locations = answers['relative_locations']['correct_answer'], answers['relative_locations']['incorrect_answers']
+    correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
+
+    print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
+    print(question)
+    print(f'{Colors.OKGREEN}Rephrased question:{Colors.ENDC}')
+    print(rephrased_question)
+    print(f'{Colors.OKGREEN}Filled values:{Colors.ENDC}')
+    print(filled_values)
+    print(f'{Colors.OKGREEN}Latlong1:{Colors.ENDC}')
+    print(latlong1)
+
+    print(f'{Colors.OKGREEN}Data 1:{Colors.ENDC}')
+    print(data_var1)
+    if data_var2 is not None:
+        print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
+        print(data_var2)
+
+    print(f'{Colors.OKGREEN}Correct answer relative locations:{Colors.ENDC}')
+    print(correct_answer_relative_locations)
+    print(f'{Colors.OKGREEN}Incorrect answers relative locations:{Colors.ENDC}')
+    print(incorrect_answers_relative_locations)
+    print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
+    print(correct_answer_place_names)
+    print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
+    print(incorrect_answers_place_names)
 
 
 if __name__ == '__main__':
