@@ -70,8 +70,7 @@ def get_lat_long(location_description, llm):
     if location:
         return (location.latitude, location.longitude)
     else:
-        messages = f"Output the latitude and longitude of {location_description}. Output a JSON with keys 'latitude' and 'longitude'. Use numbers only. Do not use 'E', 'W'. Use this template: ```json```"
-        response = llm.query_llm(self, step='extract_location', content=messages, assistant=False, verbose=False)
+        response = llm.query_llm(step='extract_location', content=location_description, assistant=False, verbose=False)
         location = parse_location(response)
         if location:
             return (location['latitude'], location['longitude'])
@@ -98,7 +97,7 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
         - 'circular': a circular buffer around the point (default)
         - 'square': a square polygon centered on the point
     - radius: float, optional
-        The radius size in kilometers if geometry='circular' or the edge size in kilometers if geometry='square'.
+        The radius size in kilometers if geometry='circular' or the half edge size in kilometers if geometry='square'.
     - verbose: bool, optional
         If True, prints the retrieved crossmodel indices.
 
@@ -130,15 +129,12 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
         # Convert edge size in km to meters
         edge_size_m = radius * 1000
 
-        # Half-edge to define corners
-        half_edge = edge_size_m / 2.0
-
         # Define square polygon in the CRS of the grid
         square_polygon = Polygon([
-            (x_center - half_edge, y_center - half_edge),
-            (x_center - half_edge, y_center + half_edge),
-            (x_center + half_edge, y_center + half_edge),
-            (x_center + half_edge, y_center - half_edge)
+            (x_center - edge_size_m, y_center - edge_size_m),
+            (x_center - edge_size_m, y_center + edge_size_m),
+            (x_center + edge_size_m, y_center + edge_size_m),
+            (x_center + edge_size_m, y_center - edge_size_m)
         ])
         area_geom = gpd.GeoSeries([square_polygon], crs=grid_cells_crs)
     else:
@@ -167,10 +163,10 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     grid_cells_gdf, grid_cells_crs, data_df = initialize_data(data_filename)
 
     # Retrieve the latitude and longitude from the response
-    location = get_lat_long(location_description, llm)
-    if verbose:
-        print('location', location)
-    lat, lon = location[0], location[1]
+    latlong = get_lat_long(location_description, llm)
+    # if verbose:
+    print('latlong', latlong)
+    lat, lon = latlong[0], latlong[1]
 
     # Retrieve the crossmodel indices in the database
     intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
@@ -180,7 +176,7 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     data = data[time_period].values
     if verbose:
         print(data)
-    return data, crossmodel_indices
+    return data, crossmodel_indices, latlong
 
 
 if __name__ == "__main__":
@@ -190,7 +186,7 @@ if __name__ == "__main__":
     parser.add_argument('--time', type=str, default="'spring in historical period'", help='To set the time period. Check all available time periods in climate_variables in utils.py')
     parser.add_argument('--var', type=str, default="'fire weather index'", help='To set the climate variable. Check all available variables in full_time_frames in utils.py')
     parser.add_argument('--geometry', type=str, default="square", help='To set the geometry of the location. Choose from "square", "circular", or "real"')
-    parser.add_argument('--radius', type=int, default=36, help='To set the radius or edge size of the location in km')
+    parser.add_argument('--radius', type=int, default=36, help='To set the radius or the half edge size of the location in km')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
 
     cmd_args = parser.parse_args()
@@ -205,6 +201,6 @@ if __name__ == "__main__":
         print('Error reading the config file')
     llm = QueryLLM(args)
 
-    data, crossmodel_indices = retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.radius, cmd_args.verbose)
+    data, crossmodel_indices, latlong = retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.radius, cmd_args.verbose)
     pivot_table = utils.reformat_to_2d_table(data, crossmodel_indices)
     print(pivot_table)

@@ -6,11 +6,13 @@ import json
 import random
 import re
 import math
-
 from openai import OpenAI
 
 import prompts
 import utils
+
+import logging
+logging.getLogger("httpx").disabled = True
 
 
 class QueryLLM:
@@ -34,8 +36,11 @@ class QueryLLM:
 
     def query_llm(self, step='extract_location', content="", assistant=False, verbose=False):
         if step == 'extract_location':
-            assert assistant == False
-            prompt = content
+            prompt = prompts.prompt_to_extract_location(content)
+        elif step == 'rephrase_question':
+            prompt = prompts.prompt_to_rephrase_question(content)
+        elif step == 'filter_names':
+            prompt = prompts.prompt_to_filter_names(content)
         else:
             raise ValueError(f'Invalid step: {step}')
 
@@ -70,6 +75,5 @@ class QueryLLM:
                     print(f'{utils.Colors.OKGREEN}{step.capitalize()}:{utils.Colors.ENDC} {response}')
             else:
                 response = None
-                print(run.status)
 
         return response

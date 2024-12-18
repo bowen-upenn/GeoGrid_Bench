@@ -346,6 +346,50 @@ def parse_inputs(args):
     return city, time, dataset
 
 
+def find_largest_rectangle(matrix):
+    """
+    Finds the largest rectangle inside a 2D matrix without any NaN values by iteratively removing edges with more than half NaN values.
+
+    Args:
+        matrix (pd.DataFrame): Input matrix with potential NaN values.
+
+    Returns:
+        pd.DataFrame: Submatrix containing the largest rectangle without NaN.
+    """
+
+    def edge_nan_fraction(matrix, edge):
+        """Calculate the fraction of NaN values along a specified edge."""
+        if edge == 'top':
+            return matrix.iloc[0].isna().mean()
+        elif edge == 'bottom':
+            return matrix.iloc[-1].isna().mean()
+        elif edge == 'left':
+            return matrix.iloc[:, 0].isna().mean()
+        elif edge == 'right':
+            return matrix.iloc[:, -1].isna().mean()
+
+    def remove_edge(matrix, edge):
+        """Remove a specified edge from the matrix."""
+        if edge == 'top':
+            return matrix.iloc[1:]
+        elif edge == 'bottom':
+            return matrix.iloc[:-1]
+        elif edge == 'left':
+            return matrix.iloc[:, 1:]
+        elif edge == 'right':
+            return matrix.iloc[:, :-1]
+
+    changed = True
+    while changed:
+        changed = False
+        for edge in ['top', 'right', 'bottom', 'left']:
+            if edge_nan_fraction(matrix, edge) > 0.5:
+                matrix = remove_edge(matrix, edge)
+                changed = True
+
+    return matrix
+
+
 def reformat_to_2d_table(data, crossmodel_indices):
     # Extract rows and columns from crossmodel_indices
     rows = [int(index[1:].split('C')[0]) for index in crossmodel_indices]
@@ -360,21 +404,26 @@ def reformat_to_2d_table(data, crossmodel_indices):
     # Fill missing values with NaN and sort rows and columns
     pivot_table = pivot_table.sort_index().sort_index(axis=1)
 
-    # Rename the row-column index for a single-line header
-    pivot_table.columns.name = None  # Remove 'Col' label
-    pivot_table.index.name = None  # Remove 'Row' label
+    # # Rename the row-column index for a single-line header
+    # pivot_table.columns.name = None  # Remove 'Col' label
+    # pivot_table.index.name = None  # Remove 'Row' label
+    #
+    # # # Crop to the largest rectangle without NaNs
+    # # cropped_table = pivot_table.dropna(how='any', axis=0).dropna(how='any', axis=1)
+    #
+    # # Prepare the string output
+    # header = "Row\\Col " + "".join(f"{col:>10}" for col in pivot_table.columns) + "\n"
+    # rows_output = "\n".join(
+    #     f"{idx:<8}" + "".join(
+    #         f"{value:>10.5f}" if not pd.isna(value) else f"{'NaN':>10}"
+    #         for value in row
+    #     )
+    #     for idx, row in pivot_table.iterrows()
+    # )
+    # output_string = header + rows_output
 
-    # Prepare the string output
-    header = "Row\\Col " + "".join(f"{col:>10}" for col in pivot_table.columns) + "\n"
-    rows_output = "\n".join(
-        f"{idx:<8}" + "".join(
-            f"{value:>10.5f}" if not pd.isna(value) else f"{'NaN':>10}"
-            for value in row
-        )
-        for idx, row in pivot_table.iterrows()
-    )
-    output_string = header + rows_output
-    return output_string
+    pivot_table = find_largest_rectangle(pivot_table)
+    return pivot_table
 
 
 if __name__ == '__main__':

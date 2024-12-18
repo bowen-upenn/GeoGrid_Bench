@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     # Command-line argument parsing
     parser = argparse.ArgumentParser(description='Command line arguments')
-    parser.add_argument('--llm', type=str, default="gpt-4o", help='Set LLM model. Choose from gpt-4-turbo, gpt-4o')
+    parser.add_argument('--llm', type=str, default="gpt-4o-mini", help='Set LLM model. Choose from gpt-4-turbo, gpt-4o')
     parser.add_argument('--n', type=int, default=-1, help='Set number of samples to generate. Default is -1, which generates all samples')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
     cmd_args = parser.parse_args()
