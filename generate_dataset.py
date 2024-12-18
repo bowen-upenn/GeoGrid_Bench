@@ -70,12 +70,18 @@ def generate_dataset(args):
         if data_var2 is not None:
             qa["data_var2"] = data_var2
 
+        """ 
+        The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
+        """
         answers = {"relative_locations": {}, "place_names": {}}
         correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1)
         answers["relative_locations"] = {"correct_answer": correct_answer_relative_locations, "incorrect_answers": incorrect_answers_relative_locations}
 
         heatmap, overlay, overlay_path, overlay_width, overlay_height = visualization.visualize_grids(data_var1, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
 
+        """ 
+        The following answers come from one of the top place names shown on the actual map
+        """
         ocr_results = ppocr.run_ocr_detection(overlay_path)
         red_set, blue_set = visualization.classify_bounding_boxes_by_color(llm, overlay, ocr_results, location_description1)
         correct_answer_place_names, incorrect_answers_place_names = utils.randomly_sample_place_names(red_set, blue_set)
