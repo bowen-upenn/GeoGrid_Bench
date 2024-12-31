@@ -17,7 +17,6 @@ import requests
 import json
 import ast
 
-
 def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num=10, verbose=False):
     """
     Classify bounding boxes based on their average color proximity to red or blue.
@@ -147,20 +146,50 @@ def overlay_heatmap_on_map(image, matrix, center_lat, center_lon, size_km=64, al
     return screenshot, width, height
 
 
+def visualize_heatmap(matrix, output_path="heatmap"):
+    # Normalize the matrix for color mapping
+    norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
+    colormap = plt.get_cmap('coolwarm')
+
+    # Create the heatmap visualization
+    fig, ax = plt.subplots(figsize=(10, 8))
+    heatmap = ax.imshow(matrix, cmap=colormap, norm=norm)
+
+    # Add column and row indices as red bold text
+    for i, row in enumerate(matrix.index):
+        for j, col in enumerate(matrix.columns):
+            value = matrix.iloc[i, j]
+            if not np.isnan(value):
+                ax.text(j, i, f'{value:.1f}', ha='center', va='center', fontsize=8, color='black')
+            else:
+                ax.text(j, i, 'N/A', ha='center', va='center', fontsize=8, color='black')
+    ax.set_xticks(range(len(matrix.columns)))
+    ax.set_yticks(range(len(matrix.index)))
+    ax.set_xticklabels([f'C{col}' for col in matrix.columns], fontsize=10, color='red', fontweight='bold')
+    ax.set_yticklabels([f'R{row}' for row in matrix.index], fontsize=10, color='red', fontweight='bold')
+
+    # Add color bar
+    cbar = plt.colorbar(heatmap, ax=ax, orientation='vertical', shrink=0.8)
+    cbar.set_label('Values', fontsize=12)
+
+    # Save and display the heatmap with indices
+    plt.title('Heatmap with Row and Column Indices', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_path, bbox_inches='tight')
+    plt.show()
+
+    heatmap = Image.open(output_path)
+    print(f"Heatmap saved as: {output_path}")
+    return heatmap, colormap, norm
+
+
+
 def visualize_grids(matrix, center_lat, center_lon, size_km=64, output_path="heatmap_map"):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
-    colormap = plt.get_cmap('coolwarm')
-
-    plt.imshow(matrix, cmap=colormap, norm=norm)
-    plt.axis('off')  # Remove axes
-    plt.savefig(f"{output_path[:-4]}.png", bbox_inches='tight', pad_inches=0)
-    plt.close()
-    heatmap = Image.open(f"{output_path[:-4]}.png")
-    print(f"Heatmap saved as: {output_path[:-4]}.png")
+    heatmap, colormap, norm = visualize_heatmap(matrix, output_path=f"{output_path[:-4]}.png")
 
     rgba_image = (colormap(norm(matrix.to_numpy()), bytes=True))
     image = Image.fromarray(rgba_image)
