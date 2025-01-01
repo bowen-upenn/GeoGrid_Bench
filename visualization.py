@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import folium
 from folium.raster_layers import ImageOverlay
-from matplotlib.colors import Normalize
-from PIL import Image
+from matplotlib.colors import Normalize, TwoSlopeNorm
+from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
 import os
@@ -16,6 +16,7 @@ from time import sleep
 import requests
 import json
 import ast
+
 
 def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num=10, verbose=False):
     """
@@ -87,15 +88,37 @@ def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num
     return red_set_filtered, blue_set_filtered
 
 
-def overlay_heatmap_on_map(image, matrix, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
-    # Make the image semi-transparent
+def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
+    # Use visualize_heatmap to create the heatmap
+    fig, ax = plt.subplots(figsize=(10, 8))
+    mid_point = (matrix.max().max() + matrix.min().min()) / 2
+    norm = TwoSlopeNorm(vmin=matrix.min().min(), vmax=matrix.max().max(), vcenter=mid_point)
+    colormap = plt.get_cmap('coolwarm')
+    heatmap = ax.imshow(matrix, cmap=colormap, norm=norm)
+
+    # Add column and row indices as red bold text
+    ax.set_xticks(range(len(matrix.columns)))
+    ax.set_yticks(range(len(matrix.index)))
+    ax.set_xticklabels([f'C{col}' for col in matrix.columns], fontsize=15, color='red', fontweight='bold')
+    ax.set_yticklabels([f'R{row}' for row in matrix.index], fontsize=15, color='red', fontweight='bold')
+
+    # Save the figure to a buffer
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    plt.close(fig)
+
+    # Load the image from buffer and make it semi-transparent
+    image = Image.open(buf)
     image = image.convert("RGBA")
-    alpha = 200 if alpha else 255
+    alpha = 100 if alpha else 255
     for y in range(image.height):
         for x in range(image.width):
             r, g, b, a = image.getpixel((x, y))
-            if a > 0:
+            if a > 0 and ((r, g, b) != (255, 255, 255) and (r, g, b) != (255, 0, 0)):
                 image.putpixel((x, y), (r, g, b, alpha))
+            elif (r, g, b) == (255, 255, 255):
+                image.putpixel((x, y), (r, g, b, 150))
 
     # Convert image to base64
     buffered = io.BytesIO()
@@ -114,7 +137,7 @@ def overlay_heatmap_on_map(image, matrix, center_lat, center_lon, size_km=64, al
         name="Heatmap Overlay",
         image=img_url,
         bounds=bounds,
-        opacity=0.6
+        opacity=1.0
     ).add_to(m)
 
     # Save map as HTML
@@ -146,7 +169,7 @@ def overlay_heatmap_on_map(image, matrix, center_lat, center_lon, size_km=64, al
     return screenshot, width, height
 
 
-def visualize_heatmap(matrix, output_path="heatmap"):
+def visualize_heatmap(matrix, variable_name, output_path="heatmap"):
     # Normalize the matrix for color mapping
     norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
     colormap = plt.get_cmap('coolwarm')
@@ -173,7 +196,7 @@ def visualize_heatmap(matrix, output_path="heatmap"):
     cbar.set_label('Values', fontsize=12)
 
     # Save and display the heatmap with indices
-    plt.title('Heatmap with Row and Column Indices', fontsize=14)
+    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14)
     plt.tight_layout()
     plt.savefig(output_path, bbox_inches='tight')
     plt.show()
@@ -184,18 +207,15 @@ def visualize_heatmap(matrix, output_path="heatmap"):
 
 
 
-def visualize_grids(matrix, center_lat, center_lon, size_km=64, output_path="heatmap_map"):
+def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap_map"):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, output_path=f"{output_path[:-4]}.png")
-
-    rgba_image = (colormap(norm(matrix.to_numpy()), bytes=True))
-    image = Image.fromarray(rgba_image)
+    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path[:-4]}.png")
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path}_overlay.png"
-    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(image, matrix, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path)
+    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height

@@ -77,7 +77,7 @@ def generate_dataset(args):
         correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1)
         answers["relative_locations"] = {"correct_answer": correct_answer_relative_locations, "incorrect_answers": incorrect_answers_relative_locations}
 
-        heatmap, overlay, overlay_path, overlay_width, overlay_height = visualization.visualize_grids(data_var1, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
+        heatmap, overlay, overlay_path, overlay_width, overlay_height = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
 
         """ 
         The following answers come from one of the top place names shown on the actual map
