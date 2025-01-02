@@ -78,9 +78,12 @@ def calculate_spatial_variations(data_var, verbose=False):
 
 def sample_row_col_indices_from_region(regions, target_region, k=3):
     correct_region = regions[target_region]
-    top_k_values = correct_region.unstack().nlargest(k)
+    top_k_values = correct_region.unstack().dropna().nlargest(k)
     top_k_indices = [f"C{top_k_values.index[i][0]} R{top_k_values.index[i][1]}" for i in range(k)]
-    top_k_indices = ', '.join(top_k_indices[:-1]) + ', and ' + top_k_indices[-1] if len(top_k_indices) > 1 else top_k_indices[0]
+    if len(top_k_indices) == 2:
+        top_k_indices = ' and '.join(top_k_indices)
+    else:
+        top_k_indices = ', '.join(top_k_indices[:-1]) + ', and ' + top_k_indices[-1] if len(top_k_indices) > 1 else top_k_indices[0]
     return top_k_indices
 
 
@@ -105,7 +108,7 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         correct_answer = {'words': f'The region with the highest average value is: {max_region}', 'indices': ''}
 
         # Find the top 3 values in the region and their indices in data_var
-        top_k_indices = sample_row_col_indices_from_region(regions, max_region, k=3)
+        top_k_indices = sample_row_col_indices_from_region(regions, max_region, k=2)
         correct_answer['indices'] = f'The region with the highest average value is around blocks: {top_k_indices}'
 
         # Find three random incorrect answers
@@ -113,7 +116,7 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         for name, region_df in regions.items():
             if name != max_region:
                 incorrect_answers['words'].append(f'The region with the highest average value is: {name}')
-                top_k_indices = sample_row_col_indices_from_region(regions, name, k=3)
+                top_k_indices = sample_row_col_indices_from_region(regions, name, k=2)
                 incorrect_answers['indices'].append(f'The region with the highest average value is around blocks: {top_k_indices}')
 
         return correct_answer, incorrect_answers
@@ -138,6 +141,7 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         # Divide data into regions
         regions_var1 = divide_into_regions(norm_var1)
         regions_var2 = divide_into_regions(norm_var2)
+        regions_diff = divide_into_regions(diff_table)
 
         region_results = []
         for region_name in regions_var1.keys():
@@ -169,33 +173,53 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         # Determine overall result
         random_positive_or_negative = np.random.choice(["positive", "negative"], 1)[0]
         if positive_count >= 6:
-            correct_answer = "Highly positively correlated" + ' with ' + spatial_variation
-            incorrect_answers = [
-                "Highly negatively correlated" + ' with ' + random_spacial_variation,
+            correct_answer = {'words': f'Highly positively correlated with {spatial_variation}', 'indices': f'Highly positively correlated with {spatial_variation}'}
+            top_k_indices = sample_row_col_indices_from_region(regions_diff, random_other_region, k=2)
+            incorrect_answers = {'words': [
+                "Highly negatively correlated with " + random_spacial_variation,
                 "No significant correlation.",
                 f"The region {random_other_region} has the highest {random_positive_or_negative} correlation" + ' with ' + random_spacial_variation,
-            ]
+            ], 'indices': [
+                "Highly negatively correlated with " + random_spacial_variation,
+                "No significant correlation.",
+                f"The region around blocks {top_k_indices} has the highest {random_positive_or_negative} correlation with " + random_spacial_variation,
+            ]}
         elif negative_count >= 6:
-            correct_answer = "Highly negatively correlated" + ' with ' + spatial_variation
-            incorrect_answers = [
-                "Highly positively correlated" + ' with ' + random_spacial_variation,
+            correct_answer = {'words': f'Highly negatively correlated with {spatial_variation}', 'indices': f'Highly negatively correlated with {spatial_variation}'}
+            top_k_indices = sample_row_col_indices_from_region(regions_diff, random_other_region, k=2)
+            incorrect_answers = {'words': [
+                "Highly positively correlated with " + random_spacial_variation,
                 "No significant correlation.",
                 f"The region {random_other_region} has the highest {random_positive_or_negative} correlation" + ' with ' + random_spacial_variation,
-            ]
+            ], 'indices': [
+                "Highly positively correlated with " + random_spacial_variation,
+                "No significant correlation.",
+                f"The region around blocks {top_k_indices} has the highest {random_positive_or_negative} correlation with " + random_spacial_variation,
+            ]}
         elif abs(max_corr_region["correlation"]) > 0.5:
-            correct_answer = (f"The region {max_corr_region['region']} has the highest "
-                              f"{'positive' if max_corr_region['correlation'] > 0 else 'negative'} correlation") + ' with ' + spatial_variation
-            incorrect_answers = ["No significant correlation."]
+            top_k_indices = sample_row_col_indices_from_region(regions_diff, max_corr_region["region"], k=2)
+            correct_answer = {'words': f"The region {max_corr_region['region']} has the highest {'positive' if max_corr_region['correlation'] > 0 else 'negative'} correlation" + ' with ' + spatial_variation,
+                              'indices': f"The region around blocks {top_k_indices} has the highest {'positive' if max_corr_region['correlation'] > 0 else 'negative'} correlation" + ' with ' + spatial_variation}
+            incorrect_answers = {'words': ["No significant correlation."], 'indices': ["No significant correlation."]}
             for _ in range(2):
-                incorrect_answers.append(f"The region {np.random.choice(other_regions, 1)[0]} has the highest {np.random.choice(['positive', 'negative'], 1)[0]} correlation"
-                                         + ' with ' + np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0])
+                random_region = np.random.choice(other_regions, 1)[0]
+                top_k_indices = sample_row_col_indices_from_region(regions_diff, random_region, k=2)
+                incorrect_answers['words'].append(f"The region {random_region} has the highest {np.random.choice(['positive', 'negative'], 1)[0]} correlation with"
+                                                    + np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0])
+                incorrect_answers['indices'].append(f"The region around blocks {top_k_indices} has the highest {np.random.choice(['positive', 'negative'], 1)[0]} correlation with"
+                                                    + np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0])
         else:
-            correct_answer = "No significant correlation."
-            incorrect_answers = [
-                "Highly positively correlated" + ' with ' + random_spacial_variation,
-                "Highly negatively correlated" + ' with ' + random_spacial_variation,
-                f"The region {random_other_region} has the highest {random_positive_or_negative} correlation" + ' with ' + random_spacial_variation,
-            ]
+            correct_answer = {'words': "No significant correlation.", 'indices': "No significant correlation."}
+            top_k_indices = sample_row_col_indices_from_region(regions_diff, random_other_region, k=2)
+            incorrect_answers = {'words': [
+                "Highly positively correlated with " + random_spacial_variation,
+                "Highly negatively correlated with " + random_spacial_variation,
+                f"The region {random_other_region} has the highest {random_positive_or_negative} correlation with " + random_spacial_variation,
+            ], 'indices': [
+                "Highly positively correlated with " + random_spacial_variation,
+                "Highly negatively correlated with " + random_spacial_variation,
+                f"The region around blocks {top_k_indices} has the highest {random_positive_or_negative} correlation with " + random_spacial_variation,
+            ]}
 
         return correct_answer, incorrect_answers
 
