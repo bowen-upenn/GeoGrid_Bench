@@ -449,7 +449,7 @@ def print_qa(qa):
     question, rephrased_question, filled_values, data_var1, answers, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['answers'], qa['latlong1']
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
     correct_answer_relative_locations, incorrect_answers_relative_locations = answers['relative_locations']['correct_answer'], answers['relative_locations']['incorrect_answers']
-    correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
+    # correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -470,10 +470,10 @@ def print_qa(qa):
     print(correct_answer_relative_locations)
     print(f'{Colors.OKGREEN}Incorrect answers relative locations:{Colors.ENDC}')
     print(incorrect_answers_relative_locations)
-    print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
-    print(correct_answer_place_names)
-    print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
-    print(incorrect_answers_place_names)
+    # print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
+    # print(correct_answer_place_names)
+    # print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
+    # print(incorrect_answers_place_names)
 
 
 if __name__ == '__main__':

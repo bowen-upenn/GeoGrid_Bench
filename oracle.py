@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
-from pysal.explore.esda import Moran
+from esda.moran import Moran
 from libpysal.weights import lat2W
 
 
@@ -27,13 +27,32 @@ def divide_into_regions(data_var):
         "upper-mid": data_var.iloc[upper_row_slice, mid_col_slice],
         "upper-right": data_var.iloc[upper_row_slice, lower_col_slice],
         "mid-left": data_var.iloc[mid_row_slice, upper_col_slice],
-        "center": data_vdata_varar1.iloc[mid_row_slice, mid_col_slice],
+        "center": data_var.iloc[mid_row_slice, mid_col_slice],
         "mid-right": data_var.iloc[mid_row_slice, lower_col_slice],
         "lower-left": data_var.iloc[lower_row_slice, upper_col_slice],
         "lower-mid": data_var.iloc[lower_row_slice, mid_col_slice],
         "lower-right": data_var.iloc[lower_row_slice, lower_col_slice]
     }
     return regions
+
+
+def fill_nan_with_nearest_neighbor(matrix):
+    """
+    Function to fill NaNs using nearest neighbor from a random direction
+    This one is only used to calculate the Moran's I
+    """
+    nan_indices = np.argwhere(np.isnan(matrix))
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+
+    for row, col in nan_indices:
+        np.random.shuffle(directions)  # Randomize directions
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            if 0 <= r < matrix.shape[0] and 0 <= c < matrix.shape[1]:  # Boundary check
+                if not np.isnan(matrix[r, c]):  # Valid neighbor
+                    matrix[row, col] = matrix[r, c]
+                    break  # Stop once a neighbor is found
+    return matrix
 
 
 def oracle_codes(template, data_var1, data_var2=None, verbose=False):
@@ -91,6 +110,8 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
             region2 = regions_var2[region_name].values.flatten()
             valid_mask = ~np.isnan(region1) & ~np.isnan(region2)
             if np.any(valid_mask):  # Ensure there's valid data
+                if len(region1[valid_mask]) < 2 or len(region2[valid_mask]) < 2:
+                    continue
                 corr, _ = pearsonr(region1[valid_mask], region2[valid_mask])
                 region_results.append({"region": region_name, "correlation": corr})
 
@@ -102,8 +123,9 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         random_other_region = np.random.choice(other_regions, 1)[0]
 
         # Moran's I
-        flat_diff = diff_table.values.flatten()
-        w = lat2W(*data_var1.shape)  # Spatial weights for a regular grid
+        flat_diff = diff_table.values
+        flat_diff = fill_nan_with_nearest_neighbor(flat_diff)
+        w = lat2W(data_var1.shape[0], data_var1.shape[1])
         moran = Moran(flat_diff, w)
 
         if abs(moran.I) > 0.3:
@@ -113,6 +135,8 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         else:
             spatial_variation = "little spatial variations"
         random_spacial_variation = np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0]   # could still be the correct one
+        if verbose:
+            print("Regional correlations", region_results, "Moran's I", moran.I)
 
         # Determine overall result
         random_positive_or_negative = np.random.choice(["positive", "negative"], 1)[0]
