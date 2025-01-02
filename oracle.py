@@ -55,6 +55,27 @@ def fill_nan_with_nearest_neighbor(matrix):
     return matrix
 
 
+def calculate_spatial_variations(data_var, verbose=False):
+    # Moran's I
+    flat_diff = data_var.values
+    flat_diff = fill_nan_with_nearest_neighbor(flat_diff)
+    w = lat2W(data_var.shape[0], data_var.shape[1])
+    moran = Moran(flat_diff, w)
+
+    if abs(moran.I) > 0.3:
+        spatial_variation = "large spatial variations"
+    elif abs(moran.I) > 0.1:
+        spatial_variation = "moderate spatial variations"
+    else:
+        spatial_variation = "little spatial variations"
+    random_spacial_variation = np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0]  # could still be the correct one
+
+    if verbose:
+        print("Moran's I", moran.I)
+
+    return spatial_variation, random_spacial_variation
+
+
 def oracle_codes(template, data_var1, data_var2=None, verbose=False):
     if template == "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?":
         """
@@ -128,21 +149,8 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         other_regions = [r["region"] for r in region_results if r["region"] != max_corr_region["region"]]
         random_other_region = np.random.choice(other_regions, 1)[0]
 
-        # Moran's I
-        flat_diff = diff_table.values
-        flat_diff = fill_nan_with_nearest_neighbor(flat_diff)
-        w = lat2W(data_var1.shape[0], data_var1.shape[1])
-        moran = Moran(flat_diff, w)
-
-        if abs(moran.I) > 0.3:
-            spatial_variation = "large spatial variations"
-        elif abs(moran.I) > 0.1:
-            spatial_variation = "moderate spatial variations"
-        else:
-            spatial_variation = "little spatial variations"
-        random_spacial_variation = np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0]   # could still be the correct one
-        if verbose:
-            print("Regional correlations", region_results, "Moran's I", moran.I)
+        # Calculate spatial variations
+        spatial_variation, random_spacial_variation = calculate_spatial_variations(diff_table, verbose=verbose)
 
         # Determine overall result
         random_positive_or_negative = np.random.choice(["positive", "negative"], 1)[0]
@@ -150,25 +158,25 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
             correct_answer = "Highly positively correlated" + ' with ' + spatial_variation
             incorrect_answers = [
                 "Highly negatively correlated" + ' with ' + random_spacial_variation,
-                "No significant correlation" + ' with ' + random_spacial_variation,
+                "No significant correlation.",
                 f"The region {random_other_region} has the highest {random_positive_or_negative} correlation" + ' with ' + random_spacial_variation,
             ]
         elif negative_count >= 6:
             correct_answer = "Highly negatively correlated" + ' with ' + spatial_variation
             incorrect_answers = [
                 "Highly positively correlated" + ' with ' + random_spacial_variation,
-                "No significant correlation" + ' with ' + random_spacial_variation,
+                "No significant correlation.",
                 f"The region {random_other_region} has the highest {random_positive_or_negative} correlation" + ' with ' + random_spacial_variation,
             ]
         elif abs(max_corr_region["correlation"]) > 0.5:
             correct_answer = (f"The region {max_corr_region['region']} has the highest "
                               f"{'positive' if max_corr_region['correlation'] > 0 else 'negative'} correlation") + ' with ' + spatial_variation
-            incorrect_answers = ["No significant correlation" + ' with ' + random_spacial_variation]
+            incorrect_answers = ["No significant correlation."]
             for _ in range(2):
                 incorrect_answers.append(f"The region {np.random.choice(other_regions, 1)[0]} has the highest {np.random.choice(['positive', 'negative'], 1)[0]} correlation"
                                          + ' with ' + np.random.choice(["large spatial variations", "moderate spatial variations", "little spatial variations"], 1)[0])
         else:
-            correct_answer = "No significant correlation"
+            correct_answer = "No significant correlation."
             incorrect_answers = [
                 "Highly positively correlated" + ' with ' + random_spacial_variation,
                 "Highly negatively correlated" + ' with ' + random_spacial_variation,
@@ -179,7 +187,94 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
 
 
     elif template == "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?":
-        pass
+        """
+        Analyzes how a climate variable has changed between two time frames in a given location.
+        Based on the difference map, we calculate the change for each of the 9 regions and determine the change in each region.
+        We categorize the changes as 'slightly', 'somewhat', or 'significantly' based on the percent change.
+        """
+        # Divide the data into regions
+        regions_var1 = divide_into_regions(data_var1)
+        regions_var2 = divide_into_regions(data_var2)
+
+        diff_table = data_var1 - data_var2
+
+        # Analyze each region
+        region_changes = []
+        for region_name in regions_var1.keys():
+            region1 = regions_var1[region_name].values.flatten()
+            region2 = regions_var2[region_name].values.flatten()
+
+            # Mask invalid (NaN) values
+            valid_mask = ~np.isnan(region1) & ~np.isnan(region2)
+            if np.any(valid_mask):  # Ensure there's valid data
+                mean1 = np.mean(region1[valid_mask])
+                mean2 = np.mean(region2[valid_mask])
+                change = (mean2 - mean1) / max(abs(mean1), 1e-6)  # Percent change relative to mean1
+                region_changes.append((region_name, change))
+        if verbose:
+            print("Region changes:", region_changes)
+
+        # Categorize changes
+        increase_count = 0
+        decrease_count = 0
+        insignificant_count = 0
+        quantifiers = []
+
+        for _, change in region_changes:
+            if abs(change) < 0.2:
+                quantifiers.append("slightly")
+                insignificant_count += 1
+            elif abs(change) < 0.7:
+                quantifiers.append("somewhat")
+            else:
+                quantifiers.append("significantly")
+
+            if change > 0:
+                increase_count += 1
+            elif change < 0:
+                decrease_count += 1
+
+        def describe_majority():
+            if increase_count > decrease_count and increase_count > insignificant_count:
+                return "Increased", quantifiers[increase_count - 1]
+            elif decrease_count > increase_count and decrease_count > insignificant_count:
+                return "Decreased", quantifiers[decrease_count - 1]
+            else:
+                return "No significant change", "over time"
+
+        majority_change, change_magnitude = describe_majority()
+
+        # Calculate spatial variations
+        spatial_variation, random_spatial_variation = calculate_spatial_variations(diff_table, verbose=verbose)
+
+        # Generate incorrect answers
+        random_positive_or_negative = np.random.choice(["positive", "negative"], 1)[0]
+        random_other_region = np.random.choice(list(regions_var1.keys()), 1)[0]
+
+        if majority_change == "Increased":
+            correct_answer = f"{majority_change} {change_magnitude} with {spatial_variation}."
+            incorrect_answers = [
+                f"Decreased significantly with {random_spatial_variation}.",
+                f"No significant change over time.",
+                f"The region {random_other_region} has the highest {random_positive_or_negative} change with {random_spatial_variation}.",
+            ]
+        elif majority_change == "Decreased":
+            correct_answer = f"{majority_change} {change_magnitude} with {spatial_variation}."
+            incorrect_answers = [
+                f"Increased significantly with {random_spatial_variation}.",
+                f"No significant change over time.",
+                f"The region {random_other_region} has the highest {random_positive_or_negative} change with {random_spatial_variation}.",
+            ]
+        else:
+            correct_answer = f"{majority_change} {change_magnitude} with {spatial_variation}."
+            incorrect_answers = [
+                f"Increased significantly with {random_spatial_variation}.",
+                f"Decreased significantly with {random_spatial_variation}.",
+                f"The region {random_other_region} has the highest {random_positive_or_negative} change with {random_spatial_variation}.",
+            ]
+
+        return correct_answer, incorrect_answers
+
 
     elif template == "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?":
         pass
