@@ -108,7 +108,13 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         for region_name in regions_var1.keys():
             region1 = regions_var1[region_name].values.flatten()
             region2 = regions_var2[region_name].values.flatten()
+
+            # Ignore regions with less than 50% valid data
             valid_mask = ~np.isnan(region1) & ~np.isnan(region2)
+            valid_data_count = np.sum(valid_mask)
+            if valid_data_count / len(region1) <= 0.5 or valid_data_count / len(region2) <= 0.5:
+                continue
+
             if np.any(valid_mask):  # Ensure there's valid data
                 if len(region1[valid_mask]) < 2 or len(region2[valid_mask]) < 2:
                     continue
