@@ -74,14 +74,18 @@ def generate_dataset(args):
         The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
         """
         answers = {"relative_locations": {}, "place_names": {}}
-        correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1)
+        correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1, data_var2)
         answers["relative_locations"] = {"correct_answer": correct_answer_relative_locations, "incorrect_answers": incorrect_answers_relative_locations}
-
-        heatmap, overlay, overlay_path, overlay_width, overlay_height = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
 
         """ 
         The following answers come from one of the top place names shown on the actual map
         """
+        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'])
+        if 'climate_variable2' in filled_values:
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable2'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'])
+        elif 'location2' in filled_values or 'time_frame2' in filled_values:
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable1'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'])
+
         ocr_results = ppocr.run_ocr_detection(overlay_path)
         red_set, blue_set = visualization.classify_bounding_boxes_by_color(llm, overlay, ocr_results, location_description1)
         correct_answer_place_names, incorrect_answers_place_names = utils.randomly_sample_place_names(red_set, blue_set)

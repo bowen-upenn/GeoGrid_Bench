@@ -38,6 +38,8 @@ def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num
 
         if confidence < 0.95:  # Ignore low confidence results
             continue
+        if len(text) > 1 and (text[0] == 'C' or text[0] == 'R') and text[1:].isdigit():  # Ignore row and column indices
+            continue
 
         x_coords = [int(p[0]) for p in bbox]
         y_coords = [int(p[1]) for p in bbox]

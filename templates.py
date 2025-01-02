@@ -14,7 +14,6 @@ class TemplateQuestionManager:
             "basic": [
                 "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?",
                 "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?",
-                "What is the relationship between population density and {climate_variable1} risk in {location1} during {time_frame1}?",
                 "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?",
                 "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?",
                 "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?",
@@ -23,6 +22,7 @@ class TemplateQuestionManager:
                 "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?"
             ],
             "harder": [
+                "What is the relationship between {population density} and {climate_variable1} risk in {location1} during {time_frame1}?",
                 "How does the seasonal variation of {climate_variable1} in {location1} compare to {climate_variable2} in {location2} for {time_frame1}?",
                 "What are the differences in the annual trends of {climate_variable1} between {location1} and {location2} in relation to the {socioeconomic_variable} for {time_frame1}?",
                 "How do trends in {elderly_population_rate} in {location1} and {location2} relate to the seasonal variation in {climate_variable1} for {time_frame1}?",
@@ -319,16 +319,70 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             with open('./data/all_filled_questions.json', 'w') as json_file:
                 json.dump(data_collections, json_file, indent=4)
 
-            if cmd_args.verbose:
-                print(f'{utils.Colors.OKGREEN}Data Collections:{utils.Colors.ENDC}')
-                print(data_collections)
+
+def generate_one_for_each_template(cmd_args, template_question_manager, location_picker):
+    """
+    Iterate through all templates and generate one question for each template
+    """
+    # Set iterator for "basic" difficulty
+    iterator = template_question_manager.set_iterator(difficulty="basic")
+    data_collections = []
+
+    for i, (question, variables) in enumerate(iterator):
+        # Get a random question and the required variables for "basic" difficulty
+        print(f'{utils.Colors.OKGREEN}{"Question Template:"}{utils.Colors.ENDC}')
+        print(question)
+        variables.sort()
+        print(f'{utils.Colors.OKGREEN}{"Required Variables:"}{utils.Colors.ENDC}')
+        print(variables)
+
+        # Randomly select values for the required variables
+        filled_values = {}
+        for variable in variables:
+            if variable in ['climate_variable1', 'climate_variable2']:
+                if variable == 'climate_variable1':
+                    filled_values['climate_variable1'] = random.choice(list(template_question_manager.climate_variables.keys()))
+                else:
+                    assert 'climate_variable1' in filled_values, "climate_variable1 must be set before climate_variable2"
+                    filled_values['climate_variable2'] = random.choice(
+                        [var for var in template_question_manager.climate_variables.keys() if var != filled_values['climate_variable1']]
+                    )
+
+            elif variable in ['location1', 'location2']:
+                if variable == 'location1':
+                    filled_values['location1'] = location_picker.choose_random_location(level=cmd_args.geoscale)
+                else:
+                    assert 'location1' in filled_values, "location1 must be set before location2"
+                    filled_values['location2'] = location_picker.choose_random_location(level=cmd_args.geoscale, exclude=filled_values['location1'])
+
+            elif variable in ['time_frame1', 'time_frame2']:
+                if variable == 'time_frame1':
+                    filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
+                else:
+                    assert 'time_frame1' in filled_values, "time_frame1 must be set before time_frame2"
+
+                    # Filter time_frame2 to avoid conflicting RCP scenarios
+                    time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in filled_values['time_frame1'] else 'RCP8.5' if 'RCP8.5' in filled_values['time_frame1'] else None
+                    filled_values['time_frame2'] = random.choice([
+                        var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()])
+
+        # Format the question
+        formatted_question = question.format(**filled_values)
+        data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+        if cmd_args.verbose:
+            print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
+        print(formatted_question)
+
+    # Save the data collections to a JSON file
+    with open('./data/test_filled_questions.json', 'w') as json_file:
+        json.dump(data_collections, json_file, indent=4)
 
 
 # Example Usage
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Command line arguments')
     parser.add_argument('--geoscale', type=str, default="city", help='Select the geographical scale for the location: city, county, or state')
-    parser.add_argument('--mode', type=str, default="random", help='Select the mode: random or iterate')
+    parser.add_argument('--mode', type=str, default="random", help='Select the mode: random or iterate or test')
     parser.add_argument('--max', type=int, default=-1, help='Select the maximum number of questions to generate if in iterate mode. Default is -1, which generates all possible questions.')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
     cmd_args = parser.parse_args()
@@ -339,6 +393,8 @@ if __name__ == "__main__":
 
     if cmd_args.mode == 'random':
         generate_one_random_question(cmd_args, template_question_manager, location_picker)
+    elif cmd_args.mode == 'test':
+        generate_one_for_each_template(cmd_args, template_question_manager, location_picker)
     else:
         generate_all_combinations(cmd_args, template_question_manager, location_picker)
 
