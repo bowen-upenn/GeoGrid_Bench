@@ -76,6 +76,14 @@ def calculate_spatial_variations(data_var, verbose=False):
     return spatial_variation, random_spacial_variation
 
 
+def sample_row_col_indices_from_region(regions, target_region, k=3):
+    correct_region = regions[target_region]
+    top_k_values = correct_region.unstack().nlargest(k)
+    top_k_indices = [f"C{top_k_values.index[i][0]} R{top_k_values.index[i][1]}" for i in range(k)]
+    top_k_indices = ', '.join(top_k_indices[:-1]) + ', and ' + top_k_indices[-1] if len(top_k_indices) > 1 else top_k_indices[0]
+    return top_k_indices
+
+
 def oracle_codes(template, data_var1, data_var2=None, verbose=False):
     if template == "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?":
         """
@@ -94,13 +102,19 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         # Identify the region with the highest average value
         # print("Region averages:", region_averages)
         max_region = max(region_averages, key=lambda k: (region_averages[k] if not np.isnan(region_averages[k]) else -np.inf))
-        correct_answer = f'The region with the highest average value is: {max_region}'
+        correct_answer = {'words': f'The region with the highest average value is: {max_region}', 'indices': ''}
+
+        # Find the top 3 values in the region and their indices in data_var
+        top_k_indices = sample_row_col_indices_from_region(regions, max_region, k=3)
+        correct_answer['indices'] = f'The region with the highest average value is around blocks: {top_k_indices}'
 
         # Find three random incorrect answers
-        incorrect_answers = []
+        incorrect_answers = {'words': [], 'indices': []}
         for name, region_df in regions.items():
             if name != max_region:
-                incorrect_answers.append(f'The region with the highest average value is: {name}')
+                incorrect_answers['words'].append(f'The region with the highest average value is: {name}')
+                top_k_indices = sample_row_col_indices_from_region(regions, name, k=3)
+                incorrect_answers['indices'].append(f'The region with the highest average value is around blocks: {top_k_indices}')
 
         return correct_answer, incorrect_answers
 

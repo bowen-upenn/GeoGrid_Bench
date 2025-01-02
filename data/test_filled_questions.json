@@ -1,5 +1,14 @@
 [
     {
+        "question": "Which region in the Lancaster, CA experienced the largest increase in maximum daily heat index during summer in change between historical and mid-century period?",
+        "filled_values": {
+            "climate_variable1": "maximum daily heat index",
+            "location1": "Lancaster, CA",
+            "time_frame1": "summer in change between historical and mid-century period"
+        },
+        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
+    },
+    {
         "question": "How has maximum daily heat index changed between summer in change between historical and mid-century period and summer in historical period in the Madison, WI?",
         "filled_values": {
             "climate_variable1": "maximum daily heat index",
@@ -8,15 +17,6 @@
             "time_frame2": "summer in historical period"
         },
         "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
-    },
-    {
-        "question": "Which region in the Lancaster, CA experienced the largest increase in maximum daily heat index during summer in change between historical and mid-century period?",
-        "filled_values": {
-            "climate_variable1": "maximum daily heat index",
-            "location1": "Lancaster, CA",
-            "time_frame1": "summer in change between historical and mid-century period"
-        },
-        "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
         "question": "What is the correlation between consecutive days with no precipitation and wind speed in the Huntington Beach, CA during end-century period (RCP4.5)?",
