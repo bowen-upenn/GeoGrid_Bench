@@ -125,7 +125,7 @@ def oracle_codes(template, data_var1, data_var2=None, verbose=False):
         positive_count = sum(1 for r in region_results if r["correlation"] > 0.5)
         negative_count = sum(1 for r in region_results if r["correlation"] < -0.5)
         max_corr_region = max(region_results, key=lambda x: abs(x["correlation"]))
-        other_regions = [r for r in region_results if r["region"] != max_corr_region["region"]]
+        other_regions = [r["region"] for r in region_results if r["region"] != max_corr_region["region"]]
         random_other_region = np.random.choice(other_regions, 1)[0]
 
         # Moran's I
