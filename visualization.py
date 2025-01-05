@@ -90,7 +90,7 @@ def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num
     return red_set_filtered, blue_set_filtered
 
 
-def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
+def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
     # Use visualize_heatmap to create the heatmap
     fig, ax = plt.subplots(figsize=(10, 8))
     mid_point = (matrix.max().max() + matrix.min().min()) / 2
@@ -106,6 +106,8 @@ def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=Tru
 
     # Save the figure to a buffer
     buf = io.BytesIO()
+    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
+    plt.tight_layout()
     plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
     plt.close(fig)
@@ -117,10 +119,12 @@ def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=Tru
     for y in range(image.height):
         for x in range(image.width):
             r, g, b, a = image.getpixel((x, y))
-            if a > 0 and ((r, g, b) != (255, 255, 255) and (r, g, b) != (255, 0, 0)):
+            if a > 0 and ((r, g, b) != (255, 255, 255) and (r, g, b) != (255, 0, 0) and (r, g, b) != (0, 0, 0)):    # heatmaps
                 image.putpixel((x, y), (r, g, b, alpha))
-            elif (r, g, b) == (255, 255, 255):
-                image.putpixel((x, y), (r, g, b, 150))
+            elif (r, g, b) == (255, 255, 255):  # white background
+                image.putpixel((x, y), (r, g, b, 200))
+            elif (r, g, b) == (255, 0, 0) or (r, g, b) == (0, 0, 0):    # red and black text
+                image.putpixel((x, y), (r, g, b, 255))
 
     # Convert image to base64
     buffered = io.BytesIO()
@@ -143,7 +147,7 @@ def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=Tru
     ).add_to(m)
 
     # Save map as HTML
-    m.save("temp_map.html")
+    m.save(f"temp_map{output_path[-5]}.html")
 
     # Use Selenium to save as image
     chrome_options = Options()
@@ -160,7 +164,7 @@ def overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km=64, alpha=Tru
     window_height = int(rows * km_per_block * km_to_pixel_ratio)
     driver.set_window_size(window_width, window_height)
 
-    driver.get("file://" + os.path.abspath("temp_map.html"))
+    driver.get("file://" + os.path.abspath(f"temp_map{output_path[-5]}.html"))
     sleep(3)  # Wait for map to load
     driver.save_screenshot(output_path)
     screenshot = Image.open(output_path)
@@ -198,7 +202,7 @@ def visualize_heatmap(matrix, variable_name, output_path="heatmap"):
     cbar.set_label('Values', fontsize=12)
 
     # Save and display the heatmap with indices
-    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14)
+    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig(output_path, bbox_inches='tight')
     plt.show()
@@ -209,15 +213,15 @@ def visualize_heatmap(matrix, variable_name, output_path="heatmap"):
 
 
 
-def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap_map"):
+def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap"):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path[:-4]}.png")
+    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path}.png")
 
     # Draw the final image with transparency on maps
-    overlay_path = f"{output_path}_overlay.png"
-    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path)
+    overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
+    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height

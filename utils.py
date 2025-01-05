@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import argparse
 import random
+from PIL import Image
 
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
@@ -443,6 +444,22 @@ def randomly_sample_place_names(red_set, blue_set):
         incorrect_answers.append(blue_sample)
 
     return correct_answer, incorrect_answers
+
+
+def merge_two_figures(figure1, figure2):
+    # Ensure the inputs are valid images
+    if not isinstance(figure1, Image.Image) or not isinstance(figure2, Image.Image):
+        raise ValueError("Both inputs must be PIL Image instances.")
+
+    new_width = figure1.width + figure2.width
+    assert figure1.height == figure2.height, "The two figures must have the same height"
+    new_height = figure1.height
+    merged_figure = Image.new("RGB", (new_width, new_height))
+
+    # Paste images side by side
+    merged_figure.paste(figure1, (0, 0))
+    merged_figure.paste(figure2, (figure1.width, 0))
+    return merged_figure
 
 
 def print_qa(qa):
