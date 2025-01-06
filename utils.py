@@ -405,45 +405,8 @@ def reformat_to_2d_table(data, crossmodel_indices):
 
     # Fill missing values with NaN and sort rows and columns
     pivot_table = pivot_table.sort_index().sort_index(axis=1)
-
-    # # Rename the row-column index for a single-line header
-    # pivot_table.columns.name = None  # Remove 'Col' label
-    # pivot_table.index.name = None  # Remove 'Row' label
-    #
-    # # # Crop to the largest rectangle without NaNs
-    # # cropped_table = pivot_table.dropna(how='any', axis=0).dropna(how='any', axis=1)
-    #
-    # # Prepare the string output
-    # header = "Row\\Col " + "".join(f"{col:>10}" for col in pivot_table.columns) + "\n"
-    # rows_output = "\n".join(
-    #     f"{idx:<8}" + "".join(
-    #         f"{value:>10.5f}" if not pd.isna(value) else f"{'NaN':>10}"
-    #         for value in row
-    #     )
-    #     for idx, row in pivot_table.iterrows()
-    # )
-    # output_string = header + rows_output
-
     pivot_table = find_largest_rectangle(pivot_table)
     return pivot_table
-
-
-def randomly_sample_place_names(red_set, blue_set):
-    # Randomly select up to 3 strings from the red_set as the correct answer
-    correct_answer = random.sample(red_set, min(3, len(red_set)))
-
-    # Randomly generate 3 incorrect options
-    incorrect_answers = []
-    for _ in range(3):
-        # Select up to 3 strings from blue_set
-        blue_sample = random.sample(blue_set, min(3, len(blue_set)))
-        # Optionally add 1 string from red_set to make it more challenging
-        if random.choice([True, False]) and red_set:
-            blue_sample.append(random.choice(red_set))
-        random.shuffle(blue_sample)  # Shuffle to mix red and blue selections
-        incorrect_answers.append(blue_sample)
-
-    return correct_answer, incorrect_answers
 
 
 def merge_two_figures(figure1, figure2):
@@ -462,11 +425,28 @@ def merge_two_figures(figure1, figure2):
     return merged_figure
 
 
+def calculate_iou(box1, box2):
+    """Calculate Intersection over Union (IoU) of two rectangles."""
+    x1 = max(box1[0][0], box2[0][0])
+    y1 = max(box1[0][1], box2[0][1])
+    x2 = min(box1[2][0], box2[2][0])
+    y2 = min(box1[2][1], box2[2][1])
+
+    inter_area = max(0, x2 - x1) * max(0, y2 - y1)
+
+    box1_area = (box1[2][0] - box1[0][0]) * (box1[2][1] - box1[0][1])
+    box2_area = (box2[2][0] - box2[0][0]) * (box2[2][1] - box2[0][1])
+
+    union_area = box1_area + box2_area - inter_area
+
+    return inter_area / union_area if union_area > 0 else 0
+
+
 def print_qa(qa):
     question, rephrased_question, filled_values, data_var1, answers, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['answers'], qa['latlong1']
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
     correct_answer_relative_locations, incorrect_answers_relative_locations = answers['relative_locations']['correct_answer'], answers['relative_locations']['incorrect_answers']
-    # correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
+    correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -487,10 +467,10 @@ def print_qa(qa):
     print(correct_answer_relative_locations)
     print(f'{Colors.OKGREEN}Incorrect answers relative locations:{Colors.ENDC}')
     print(incorrect_answers_relative_locations)
-    # print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
-    # print(correct_answer_place_names)
-    # print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
-    # print(incorrect_answers_place_names)
+    print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
+    print(correct_answer_place_names)
+    print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
+    print(incorrect_answers_place_names)
 
 
 if __name__ == '__main__':

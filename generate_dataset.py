@@ -93,10 +93,10 @@ def generate_dataset(args):
             overlay_merged.save('heatmap_overlay_merged.png')
             print("Merged heatmap and overlay saved.")
 
-        # ocr_results = ppocr.run_ocr_detection(overlay_path)
-        # red_set, blue_set = visualization.classify_bounding_boxes_by_color(llm, overlay, ocr_results, location_description1)
-        # correct_answer_place_names, incorrect_answers_place_names = utils.randomly_sample_place_names(red_set, blue_set)
-        # answers["place_names"] = {"correct_answer": correct_answer_place_names, "incorrect_answers": incorrect_answers_place_names}
+        ocr_results = ppocr.run_ocr_detection(overlay_path1, verbose=False)
+        red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
+        correct_answer_place_names, incorrect_answers_place_names = ocr.randomly_sample_place_names(red_set, blue_set)
+        answers["place_names"] = {"correct_answer": correct_answer_place_names, "incorrect_answers": incorrect_answers_place_names}
 
         qa["answers"] = answers
         if args['inference']['verbose']:

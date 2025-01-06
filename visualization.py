@@ -1,93 +1,25 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import folium
-from folium.raster_layers import ImageOverlay
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
 import os
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from time import sleep
 import requests
 import json
 import ast
 
+import folium
+from folium.raster_layers import ImageOverlay
 
-def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num=10, verbose=False):
-    """
-    Classify bounding boxes based on their average color proximity to red or blue.
-    """
-    def color_distance(c1, c2):
-        return np.sqrt(sum((a - b) ** 2 for a, b in zip(c1, c2)))
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 
-    red_rgb = np.array([255, 0, 0])
-    blue_rgb = np.array([0, 0, 255])
-
-    red_set = []
-    blue_set = []
-
-    for curr in ocr_results:
-        bbox = curr[0]
-        text = curr[1][0]
-        confidence = curr[1][1]
-
-        if confidence < 0.95:  # Ignore low confidence results
-            continue
-        if len(text) > 1 and (text[0] == 'C' or text[0] == 'R') and text[1:].isdigit():  # Ignore row and column indices
-            continue
-
-        x_coords = [int(p[0]) for p in bbox]
-        y_coords = [int(p[1]) for p in bbox]
-
-        min_x, max_x = min(x_coords), max(x_coords)
-        min_y, max_y = min(y_coords), max(y_coords)
-
-        pixel_values = []
-        for x in range(min_x, max_x + 1):
-            for y in range(min_y, max_y + 1):
-                if 0 <= x < image.width and 0 <= y < image.height:
-                    pixel_values.append(image.getpixel((x, y)))
-
-        if not pixel_values:
-            continue
-
-        avg_color = np.mean(pixel_values, axis=0)
-        distance_to_red = color_distance(avg_color, red_rgb)
-        distance_to_blue = color_distance(avg_color, blue_rgb)
-
-        if distance_to_red < distance_to_blue:
-            red_set.append((text, distance_to_red))
-        elif distance_to_blue < distance_to_red:
-            blue_set.append((text, distance_to_blue))
-
-    red_set = [text for text, _ in sorted(red_set, key=lambda x: x[1])]
-    blue_set = [text for text, _ in sorted(blue_set, key=lambda x: x[1])]
-
-    red_set = red_set[:min(max_num, len(red_set))]
-    blue_set = blue_set[:min(max_num, len(blue_set))]
-
-    red_set_filtered = llm.query_llm(step='filter_names', content={'list': red_set, 'curr_city': curr_city}, assistant=False, verbose=False)
-    try:
-        red_set_filtered = ast.literal_eval(red_set_filtered)
-    except:
-        red_set_filtered = red_set
-
-    blue_set_filtered = llm.query_llm(step='filter_names', content={'list': blue_set, 'curr_city': curr_city}, assistant=False, verbose=False)
-    try:
-        blue_set_filtered = ast.literal_eval(blue_set_filtered)
-    except:
-        blue_set_filtered = blue_set
-
-    if verbose:
-        print('red_set', red_set_filtered)
-        print('blue_set', blue_set_filtered)
-
-    return red_set_filtered, blue_set_filtered
+import ocr
 
 
 def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
