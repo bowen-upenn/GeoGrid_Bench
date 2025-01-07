@@ -38,7 +38,7 @@ def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_k
 
     # Save the figure to a buffer
     buf = io.BytesIO()
-    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
+    plt.title('Heatmap of ' + variable_name, fontsize=18, fontweight='bold')
     plt.tight_layout()
     plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
