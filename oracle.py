@@ -314,7 +314,7 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         total_change = sum(change for _, change in region_changes)
         percent = total_change / np.nansum(data_var1)
 
-        if max([percent[1] for percent in region_changes_percent]) < 0.1:
+        if np.abs(max([percent[1] for percent in region_changes_percent])) < 0.05:
             correct_trend = "no significant changes"
             incorrect_trend = ["most regions increased", "most regions decreased", "there are large variations across regions"]
         elif increase_count >= 8:     # with decrease_count <= 1 out of 9
@@ -333,15 +333,15 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
             correct_trend = "there are large variations across regions"
             incorrect_trend = ["most regions increased", "most regions decreased", "no significant changes"]
 
-        if percent < 0.1:
+        if np.abs(percent) < 0.1:
             change_magnitude = "slightly"
-        elif percent < 0.5:
+        elif np.abs(percent < 0.5):
             change_magnitude = "moderately"
         else:
             change_magnitude = "significantly"
 
-        correct_trend = f"{correct_trend} {change_magnitude}." if correct_trend != "No significant changes" else correct_trend
-        incorrect_trend = [f"{trend} {change_magnitude}." if trend != "No significant changes" else trend for trend in incorrect_trend]
+        correct_trend = f"{correct_trend} {change_magnitude}." if correct_trend != "no significant changes" else correct_trend
+        incorrect_trend = [f"{trend} {change_magnitude}." if trend != "no significant changes" else trend for trend in incorrect_trend]
 
         correct_answer = {
             'trend': {
