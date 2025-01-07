@@ -22,7 +22,7 @@ from selenium.webdriver.chrome.options import Options
 import ocr
 
 
-def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png"):
+def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
     # Use visualize_heatmap to create the heatmap
     fig, ax = plt.subplots(figsize=(10, 8))
     mid_point = (matrix.max().max() + matrix.min().min()) / 2
@@ -75,7 +75,7 @@ def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_k
         name="Heatmap Overlay",
         image=img_url,
         bounds=bounds,
-        opacity=1.0
+        opacity=0.9
     ).add_to(m)
 
     # Save map as HTML
@@ -101,13 +101,14 @@ def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_k
     driver.save_screenshot(output_path)
     screenshot = Image.open(output_path)
     width, height = screenshot.size
-    print(f"Map saved as image: {output_path} with size {width}x{height} pixels")
+    if verbose:
+        print(f"Map saved as image: {output_path} with size {width}x{height} pixels")
     driver.quit()
 
     return screenshot, width, height
 
 
-def visualize_heatmap(matrix, variable_name, output_path="heatmap"):
+def visualize_heatmap(matrix, variable_name, output_path="heatmap", verbose=False):
     # Normalize the matrix for color mapping
     norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
     colormap = plt.get_cmap('coolwarm')
@@ -140,20 +141,21 @@ def visualize_heatmap(matrix, variable_name, output_path="heatmap"):
     plt.show()
 
     heatmap = Image.open(output_path)
-    print(f"Heatmap saved as: {output_path}")
+    if verbose:
+        print(f"Heatmap saved as: {output_path}")
     return heatmap, colormap, norm
 
 
 
-def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap"):
+def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path}.png")
+    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path}.png", verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path)
+    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height

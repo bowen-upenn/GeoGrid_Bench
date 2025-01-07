@@ -13,7 +13,7 @@ def find_row_col_boxes(ocr_results):
     row_col_indices = []
     for entry in ocr_results:
         box, (text, confidence) = entry
-        if re.fullmatch(r'(C\d+\s*)+(R\d+\s*)*', text) or re.fullmatch(r'(R\d+\s*)+(C\d+\s*)*', text):
+        if re.match(r'^(R\d{1,}|C\d{1,})', text.strip()):  # Adjust regex for matching
             row_col_indices.append(entry)
     return row_col_indices
 
@@ -60,6 +60,54 @@ def is_within_heatmap_rect(bbox, heatmap_rect):
         if is_point_in_box(corner, heatmap_rect):
             return True
     return False
+
+
+def divide_heatmap_into_regions(heatmap_rect, ocr_results):
+    """
+    Divide the heatmap_rect into 9 regions and assign OCR names to each region.
+
+    :param heatmap_rect: The bounding box of the heatmap in the format [x_min, y_min, x_max, y_max]
+    :param ocr_results: OCR results with bounding boxes and detected text
+    :return: Dictionary of 9 regions with OCR names assigned to them
+    """
+    x_min, y_min, x_max, y_max = heatmap_rect[0][0], heatmap_rect[0][1], heatmap_rect[2][0], heatmap_rect[2][1]
+    width = x_max - x_min
+    height = y_max - y_min
+
+    # Define boundaries for 9 regions
+    row_third = height // 3
+    col_third = width // 3
+
+    region_boundaries = {
+        "upper-left": (x_min, y_min, x_min + col_third, y_min + row_third),
+        "upper-mid": (x_min + col_third, y_min, x_min + 2 * col_third, y_min + row_third),
+        "upper-right": (x_min + 2 * col_third, y_min, x_max, y_min + row_third),
+        "mid-left": (x_min, y_min + row_third, x_min + col_third, y_min + 2 * row_third),
+        "center": (x_min + col_third, y_min + row_third, x_min + 2 * col_third, y_min + 2 * row_third),
+        "mid-right": (x_min + 2 * col_third, y_min + row_third, x_max, y_min + 2 * row_third),
+        "lower-left": (x_min, y_min + 2 * row_third, x_min + col_third, y_max),
+        "lower-mid": (x_min + col_third, y_min + 2 * row_third, x_min + 2 * col_third, y_max),
+        "lower-right": (x_min + 2 * col_third, y_min + 2 * row_third, x_max, y_max)
+    }
+
+    # Initialize a dictionary to store OCR results for each region
+    names_in_regions = {key: [] for key in region_boundaries.keys()}
+
+    # Assign OCR names to regions based on their bounding box
+    for detection in ocr_results:
+        box, (text, score) = detection
+        box_x_min, box_y_min = box[0]
+        box_x_max, box_y_max = box[2]
+        box_center_x = (box_x_min + box_x_max) // 2
+        box_center_y = (box_y_min + box_y_max) // 2
+
+        for region_name, boundary in region_boundaries.items():
+            x1, y1, x2, y2 = boundary
+            if x1 <= box_center_x <= x2 and y1 <= box_center_y <= y2:
+                names_in_regions[region_name].append(text)
+                break
+
+    return names_in_regions
 
 
 def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num=10, verbose=False):
@@ -134,13 +182,15 @@ def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num
     return red_set_filtered, blue_set_filtered
 
 
-def randomly_sample_place_names(red_set, blue_set):
+def randomly_sample_place_names(red_set, blue_set, invalid_names):
     # Randomly select up to 3 strings from the red_set as the correct answer
     correct_answer = random.sample(red_set, min(3, len(red_set)))
 
     # Randomly generate 3 incorrect options
+    if len(blue_set) < 3:
+        blue_set += invalid_names
+
     incorrect_answers = []
-    print('len(correct_answer)', len(correct_answer))
     for _ in range(3):
         # Select up to 3 strings from blue_set
         blue_sample = random.sample(blue_set, min(len(correct_answer), len(blue_set)))
@@ -170,26 +220,33 @@ class OCR:
 
     def run_ocr_detection(self, img_path, verbose=False):
         result = self.ocr.ocr(img_path, cls=False)
+        self.draw_result(img_path, result)
         heatmap_rect = find_heatmap_region(result[0])
 
         invaild_lines = []
+        invalid_names = []
+
         for idx in range(len(result)):
             res = result[idx]
             for line_idx, line in enumerate(res):
                 if not is_within_heatmap_rect(line[0], heatmap_rect):
                     invaild_lines.append((idx, line_idx))
+
         if len(invaild_lines) > 0:
             for idx, line_idx in invaild_lines[::-1]:
+                invalid_names.append(result[idx][line_idx][1][0])
                 del result[idx][line_idx]
+
+        names_in_regions = divide_heatmap_into_regions(heatmap_rect, result[0])
 
         if verbose:
             for idx in range(len(result)):
                 res = result[idx]
                 for line in res:
                     print(line)
-            self.draw_result(img_path, result)
+        self.draw_result(img_path, result)
 
-        return result[0]
+        return result[0], names_in_regions, invalid_names
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ def prompt_to_rephrase_question(question):
 
 def prompt_to_filter_names(data):
     message = "Based on your common sense, which of the following are complete and correct names on maps, but avoid " + data['curr_city'] + " or its alias. " \
+              "If you believe the name only misses few letters, please complete its full name. It is a location on the map of " + data['curr_city'] + "." \
               "Here is the list:\n\n" + str(data['list']) + ".\n\n" \
               "Output a Python list of strings. Do NOT use any codes to analyze the inputs. Do NOT output any other words."
     return message

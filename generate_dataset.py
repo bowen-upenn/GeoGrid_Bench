@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import json
 import geopandas as gpd
+from tqdm import tqdm
 
 from data_retrieval import retrieve_data_from_location
 from query_llm import QueryLLM
@@ -28,9 +29,13 @@ def generate_dataset(args):
     llm = QueryLLM(args)
     ppocr = ocr.OCR()
 
-    for i, data_sample in enumerate(dataloader('./data/test_filled_questions.json')):
-        if i == 1:
+    for i, data_sample in tqdm(enumerate(dataloader('./data/test_filled_questions.json'))):
+        if i < 3:
+            continue
+        if i == 4:
             break
+        if args['inference']['verbose']:
+            print(f'{utils.Colors.HEADER}Processing data sample {i}{utils.Colors.ENDC}')
 
         question = data_sample['question']
         filled_values = data_sample['filled_values']
@@ -45,7 +50,7 @@ def generate_dataset(args):
         data_var1 = utils.reformat_to_2d_table(data_var1, crossmodel_indices1)
 
         # Load data for climate_variable2
-        data_var2 = None
+        data_var2, location_description2 = None, None
         if 'climate_variable2' in filled_values:
             climate_variable2 = filled_values['climate_variable2']
             if time_period1 not in utils.full_time_frames[climate_variable2]:
@@ -70,34 +75,30 @@ def generate_dataset(args):
         if data_var2 is not None:
             qa["data_var2"] = data_var2
 
-        """ 
-        The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
-        """
-        answers = {"relative_locations": {}, "place_names": {}}
-        correct_answer_relative_locations, incorrect_answers_relative_locations = oracle.oracle_codes(template, data_var1, data_var2, args['inference']['verbose'])
-        answers["relative_locations"] = {"correct_answer": correct_answer_relative_locations, "incorrect_answers": incorrect_answers_relative_locations}
-
         """
         The following answers come from one of the top place names shown on the actual map
         """
-        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1')
-        heatmap2, overlay2 = None, None
+        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
+        heatmap2, overlay2, overlay_path2 = None, None, None
         if 'climate_variable2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable2'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2')
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable2'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
         elif 'location2' in filled_values or 'time_frame2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable1'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2')
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable1'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+
         if heatmap2 is not None:
             heatmap_merged = utils.merge_two_figures(heatmap1, heatmap2)
             overlay_merged = utils.merge_two_figures(overlay1, overlay2)
             heatmap_merged.save('heatmap_merged.png')
             overlay_merged.save('heatmap_overlay_merged.png')
-            print("Merged heatmap and overlay saved.")
+            if args['inference']['verbose']:
+                print("Merged heatmap and overlay saved.")
 
-        ocr_results = ppocr.run_ocr_detection(overlay_path1, verbose=False)
-        red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
-        correct_answer_place_names, incorrect_answers_place_names = ocr.randomly_sample_place_names(red_set, blue_set)
-        answers["place_names"] = {"correct_answer": correct_answer_place_names, "incorrect_answers": incorrect_answers_place_names}
+        """ 
+        The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
+        """
+        correct_answer, incorrect_answers = oracle.oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, location_description1, data_var2, overlay2, overlay_path2, location_description2, args['inference']['verbose'])
+        qa["correct_answer"] = correct_answer
+        qa["incorrect_answers"] = incorrect_answers
 
-        qa["answers"] = answers
         if args['inference']['verbose']:
             utils.print_qa(qa)

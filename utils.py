@@ -4,6 +4,7 @@ import pandas as pd
 import argparse
 import random
 from PIL import Image
+import json
 
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
@@ -442,11 +443,18 @@ def calculate_iou(box1, box2):
     return inter_area / union_area if union_area > 0 else 0
 
 
+def filter_names(llm, names, curr_city):
+    names = llm.query_llm(step='filter_names', content={'list': names, 'curr_city': curr_city}, assistant=False, verbose=False)
+    try:
+        names_filtered = ast.literal_eval(names)
+    except:
+        names_filtered = names
+    return names_filtered
+
+
 def print_qa(qa):
-    question, rephrased_question, filled_values, data_var1, answers, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['answers'], qa['latlong1']
+    question, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
-    correct_answer_relative_locations, incorrect_answers_relative_locations = answers['relative_locations']['correct_answer'], answers['relative_locations']['incorrect_answers']
-    correct_answer_place_names, incorrect_answers_place_names = answers['place_names']['correct_answer'], answers['place_names']['incorrect_answers']
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -463,14 +471,11 @@ def print_qa(qa):
         print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
         print(data_var2)
 
-    print(f'{Colors.OKGREEN}Correct answer relative locations:{Colors.ENDC}')
-    print(correct_answer_relative_locations)
-    print(f'{Colors.OKGREEN}Incorrect answers relative locations:{Colors.ENDC}')
-    print(incorrect_answers_relative_locations)
-    print(f'{Colors.OKGREEN}Correct answer place names:{Colors.ENDC}')
-    print(correct_answer_place_names)
-    print(f'{Colors.OKGREEN}Incorrect answers place names:{Colors.ENDC}')
-    print(incorrect_answers_place_names)
+    print(f'{Colors.OKGREEN}Correct answers:{Colors.ENDC}')
+    print(json.dumps(correct_answer, indent=4))
+    print(f'{Colors.OKGREEN}Incorrect answers:{Colors.ENDC}')
+    print(json.dumps(incorrect_answer, indent=4))
+
 
 
 if __name__ == '__main__':

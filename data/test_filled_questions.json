@@ -9,6 +9,15 @@
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
+        "question": "Which region in the Lancaster, CA experienced the largest spatial variation in maximum daily heat index during summer in change between historical and mid-century period?",
+        "filled_values": {
+            "climate_variable1": "maximum daily heat index",
+            "location1": "Lancaster, CA",
+            "time_frame1": "summer in change between historical and mid-century period"
+        },
+        "template": "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?"
+    },
+    {
         "question": "What is the correlation between consecutive days with no precipitation and wind speed in the Huntington Beach, CA during end-century period (RCP4.5)?",
         "filled_values": {
             "climate_variable1": "consecutive days with no precipitation",

@@ -7,14 +7,26 @@ import json
 import utils
 
 
+visual_qa_mode = {"Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?": 'block',
+                  "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?" : 'block',
+                  "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?": 'block',
+                  "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?": 'region',
+                  "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?": None,
+                  "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?": None,
+                  "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?": 'block2',
+                  "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1}?": None,
+                  "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?": None}
+
+
 class TemplateQuestionManager:
     def __init__(self):
         # Store the template questions
         self.questions = {
             "basic": [
                 "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?",
-                "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?",
+                "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?",
                 "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?",
+                "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?",
                 "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?",
                 "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?",
                 "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?",
@@ -41,6 +53,7 @@ class TemplateQuestionManager:
 
         # the following dictionary contains data for changes and differences between time frames, which could be used as ground truth answers
         self.full_time_frames = utils.full_time_frames
+
 
     def set_iterator(self, difficulty="basic"):
         """Validate the difficulty level."""
