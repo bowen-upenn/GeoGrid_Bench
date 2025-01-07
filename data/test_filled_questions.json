@@ -18,24 +18,24 @@
         "template": "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?"
     },
     {
-        "question": "How has minimum seasonal temperature changed between winter in historical period and autumn in mid-century period (RCP8.5) in the New Orleans, LA?",
+        "question": "What is the correlation between wind speed and minimum annual temperature in the San Jose, CA during historical period?",
         "filled_values": {
-            "climate_variable1": "minimum seasonal temperature",
-            "location1": "New Orleans, LA",
-            "time_frame1": "winter in historical period",
-            "time_frame2": "autumn in mid-century period (RCP8.5)"
-        },
-        "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
-    },
-    {
-        "question": "What is the correlation between annual total precipitation and cooling degree days in the San Jose, CA during historical period?",
-        "filled_values": {
-            "climate_variable1": "annual total precipitation",
-            "climate_variable2": "cooling degree days",
+            "climate_variable1": "wind speed",
+            "climate_variable2": "minimum annual temperature",
             "location1": "San Jose, CA",
             "time_frame1": "historical period"
         },
         "template": "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?"
+    },
+    {
+        "question": "How has the fire weather index changed between autumn in historical period and autumn in end-century period in the San Jose, CA?",
+        "filled_values": {
+            "climate_variable1": "fire weather index",
+            "location1": "San Jose, CA",
+            "time_frame1": "autumn in historical period",
+            "time_frame2": "autumn in end-century period"
+        },
+        "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
     },
     {
         "question": "What is the seasonal variation of number of days with daily heat index above 105 F in Durham, NC during summer in mid-century period?",

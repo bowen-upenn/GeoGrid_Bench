@@ -355,32 +355,32 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         correct_answer = {
             'trend': {
                 'region': f"Overall {correct_trend}",
-                'indices': f"Overall {correct_trend}",
-                'places': f"Overall {correct_trend}"
-            },
-            'location': {
-                'region': f"The region around {max_region_num} has the largest change.",
-                'indices': f"The region around blocks {top_k_indices_correct_num} has the largest change.",
-                'places': f"The region around the textual marks {correct_place_names_num} on the map has the largest change." if correct_place_names_num is not None else None
-            },
-            'variation': {
-                'region': f"The region around {max_region_var} has the largest spatial variation in the change over time.",
-                'indices': f"The region around blocks {top_k_indices_correct_var} has the largest spatial variation in the change over time.",
-                'places': f"The region around the textual marks {correct_place_names_var} on the map has the largest spatial variation in the change over time." if correct_place_names_var is not None else None
-            },
+            }
         }
-        random_two = ['trend', np.random.choice(['location', 'variation'], 1, replace=False)[0]]
-        print('random_two', random_two)
-        correct_answer['merge_two'] = {
-            'region': correct_answer[random_two[0]]['region'][:-1] + ' and t' + correct_answer[random_two[1]]['region'][1:],
-            'indices': correct_answer[random_two[0]]['indices'][:-1] + ' and t' + correct_answer[random_two[1]]['indices'][1:],
-            'places': correct_answer[random_two[0]]['places'][:-1] + ' and t' + correct_answer[random_two[1]]['places'][1:] if correct_place_names_var is not None else None
-        }
-        correct_answer['merge_three'] = {
-            'region': correct_answer['trend']['region'][:-1] + ', t' + correct_answer['location']['region'][1:] + ', and t' + correct_answer['variation']['region'][1:],
-            'indices': correct_answer['trend']['indices'][:-1] + ', t' + correct_answer['location']['indices'][1:] + ', and t' + correct_answer['variation']['indices'][1:],
-            'places': correct_answer['trend']['places'][:-1] + ', t' + correct_answer['location']['places'][1:] + ', and t' + correct_answer['variation']['places'][1:] if correct_place_names_var is not None else None
-        }
+        if correct_trend != "no significant changes":
+            correct_answer.update({
+                'location': {
+                    'region': f"The region around {max_region_num} has the largest change.",
+                    'indices': f"The region around blocks {top_k_indices_correct_num} has the largest change.",
+                    'places': f"The region around the textual marks {correct_place_names_num} on the map has the largest change." if correct_place_names_num is not None else None
+                },
+                'variation': {
+                    'region': f"The region around {max_region_var} has the largest spatial variation in the change over time.",
+                    'indices': f"The region around blocks {top_k_indices_correct_var} has the largest spatial variation in the change over time.",
+                    'places': f"The region around the textual marks {correct_place_names_var} on the map has the largest spatial variation in the change over time." if correct_place_names_var is not None else None
+                },
+            })
+            random_two = ['trend', np.random.choice(['location', 'variation'], 1, replace=False)[0]]
+            correct_answer['merge_two'] = {
+                'region': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer[random_two[1]]['region'][1:],
+                'indices': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer[random_two[1]]['indices'][1:],
+                'places': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer[random_two[1]]['places'][1:] if correct_place_names_var is not None else None
+            }
+            correct_answer['merge_three'] = {
+                'region': correct_answer['trend']['region'][:-1] + ', t' + correct_answer['location']['region'][1:] + ', and t' + correct_answer['variation']['region'][1:],
+                'indices': correct_answer['trend']['region'][:-1] + ', t' + correct_answer['location']['indices'][1:] + ', and t' + correct_answer['variation']['indices'][1:],
+                'places': correct_answer['trend']['region'][:-1] + ', t' + correct_answer['location']['places'][1:] + ', and t' + correct_answer['variation']['places'][1:] if correct_place_names_var is not None else None
+            }
 
         incorrect_answers = {
             'trend': {
@@ -388,62 +388,56 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
                     f"Overall {incorrect_trend[0]}",
                     f"Overall {incorrect_trend[1]}",
                     f"Overall {incorrect_trend[2]}",
-                ],
-                'indices': [
-                    f"Overall {incorrect_trend[0]}",
-                    f"Overall {incorrect_trend[1]}",
-                    f"Overall {incorrect_trend[2]}",
-                ],
-                'places': [
-                    f"Overall {incorrect_trend[0]}",
-                    f"Overall {incorrect_trend[1]}",
-                    f"Overall {incorrect_trend[2]}",
                 ]
-            },
-            'location': {
-                'region': [
-                    f"The region around {other_regions_num[0]} has the largest change.",
-                    f"The region around {other_regions_num[1]} has the largest change.",
-                    f"The region around {other_regions_num[2]} has the largest change.",
-                ],
-                'indices': [
-                    f"The region around blocks {top_k_indices_incorrect_num[0]} has the largest change.",
-                    f"The region around blocks {top_k_indices_incorrect_num[1]} has the largest change.",
-                    f"The region around blocks {top_k_indices_incorrect_num[2]} has the largest change.",
-                ],
-                'places': [
-                    f"The region around the textual marks {incorrect_place_names_num[0]} on the map has the largest change.",
-                    f"The region around the textual marks {incorrect_place_names_num[1]} on the map has the largest change.",
-                    f"The region around the textual marks {incorrect_place_names_num[2]} on the map has the largest change.",
-                ] if incorrect_place_names_num is not None else None
-            },
-            'variation': {
-                'region': [
-                    f"The region around {other_regions_var[0]} has the largest spatial variation in the change over time.",
-                    f"The region around {other_regions_var[1]} has the largest spatial variation in the change over time.",
-                    f"The region around {other_regions_var[2]} has the largest spatial variation in the change over time.",
-                ],
-                'indices': [
-                    f"The region around blocks {top_k_indices_incorrect_var[0]} has the largest spatial variation in the change over time.",
-                    f"The region around blocks {top_k_indices_incorrect_var[1]} has the largest spatial variation in the change over time.",
-                    f"The region around blocks {top_k_indices_incorrect_var[2]} has the largest spatial variation in the change over time.",
-                ],
-                'places': [
-                    f"The region around the textual marks {incorrect_place_names_var[0]} on the map has the largest spatial variation in the change over time.",
-                    f"The region around the textual marks {incorrect_place_names_var[1]} on the map has the largest spatial variation in the change over time.",
-                    f"The region around the textual marks {incorrect_place_names_var[2]} on the map has the largest spatial variation in the change over time.",
-                ] if incorrect_place_names_var is not None else None
-            },
-            'merge_two': {'region': [], 'indices': [], 'places': []},
-            'merge_three': {'region': [], 'indices': [], 'places': []}
+            }
         }
-        for i in range(3):
-            incorrect_answers['merge_two']['region'].append(incorrect_answers[random_two[0]]['region'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['region'][i][1:])
-            incorrect_answers['merge_two']['indices'].append(incorrect_answers[random_two[0]]['indices'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['indices'][i][1:])
-            incorrect_answers['merge_two']['places'].append(incorrect_answers[random_two[0]]['places'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['places'][i][1:] if correct_place_names_var is not None else None)
-            incorrect_answers['merge_three']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' with t' + incorrect_answers['location']['region'][i][1:-1] + ' and t' + incorrect_answers['variation']['region'][i][1:])
-            incorrect_answers['merge_three']['indices'].append(incorrect_answers['trend']['indices'][i][:-1] + ' with t' + incorrect_answers['location']['indices'][i][1:-1] + ' and t' + incorrect_answers['variation']['indices'][i][1:])
-            incorrect_answers['merge_three']['places'].append(incorrect_answers['trend']['places'][i][:-1] + ' with t' + incorrect_answers['location']['places'][i][1:-1] + ' and t' + incorrect_answers['variation']['places'][i][1:] if correct_place_names_var is not None else None)
+        if correct_trend != "no significant changes":
+            incorrect_answers.update({
+                'location': {
+                    'region': [
+                        f"The region around {other_regions_num[0]} has the largest change.",
+                        f"The region around {other_regions_num[1]} has the largest change.",
+                        f"The region around {other_regions_num[2]} has the largest change.",
+                    ],
+                    'indices': [
+                        f"The region around blocks {top_k_indices_incorrect_num[0]} has the largest change.",
+                        f"The region around blocks {top_k_indices_incorrect_num[1]} has the largest change.",
+                        f"The region around blocks {top_k_indices_incorrect_num[2]} has the largest change.",
+                    ],
+                    'places': [
+                        f"The region around the textual marks {incorrect_place_names_num[0]} on the map has the largest change.",
+                        f"The region around the textual marks {incorrect_place_names_num[1]} on the map has the largest change.",
+                        f"The region around the textual marks {incorrect_place_names_num[2]} on the map has the largest change.",
+                    ] if incorrect_place_names_num is not None else None
+                },
+                'variation': {
+                    'region': [
+                        f"The region around {other_regions_var[0]} has the largest spatial variation in the change over time.",
+                        f"The region around {other_regions_var[1]} has the largest spatial variation in the change over time.",
+                        f"The region around {other_regions_var[2]} has the largest spatial variation in the change over time.",
+                    ],
+                    'indices': [
+                        f"The region around blocks {top_k_indices_incorrect_var[0]} has the largest spatial variation in the change over time.",
+                        f"The region around blocks {top_k_indices_incorrect_var[1]} has the largest spatial variation in the change over time.",
+                        f"The region around blocks {top_k_indices_incorrect_var[2]} has the largest spatial variation in the change over time.",
+                    ],
+                    'places': [
+                        f"The region around the textual marks {incorrect_place_names_var[0]} on the map has the largest spatial variation in the change over time.",
+                        f"The region around the textual marks {incorrect_place_names_var[1]} on the map has the largest spatial variation in the change over time.",
+                        f"The region around the textual marks {incorrect_place_names_var[2]} on the map has the largest spatial variation in the change over time.",
+                    ] if incorrect_place_names_var is not None else None
+                },
+                'merge_two': {'region': [], 'indices': [], 'places': []},
+                'merge_three': {'region': [], 'indices': [], 'places': []}
+            })
+
+            for i in range(3):
+                incorrect_answers['merge_two']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['region'][i][1:])
+                incorrect_answers['merge_two']['indices'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['indices'][i][1:])
+                incorrect_answers['merge_two']['places'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers[random_two[1]]['places'][i][1:] if correct_place_names_var is not None else None)
+                incorrect_answers['merge_three']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' with t' + incorrect_answers['location']['region'][i][1:-1] + ' and t' + incorrect_answers['variation']['region'][i][1:])
+                incorrect_answers['merge_three']['indices'].append(incorrect_answers['trend']['region'][i][:-1] + ' with t' + incorrect_answers['location']['indices'][i][1:-1] + ' and t' + incorrect_answers['variation']['indices'][i][1:])
+                incorrect_answers['merge_three']['places'].append(incorrect_answers['trend']['region'][i][:-1] + ' with t' + incorrect_answers['location']['places'][i][1:-1] + ' and t' + incorrect_answers['variation']['places'][i][1:] if correct_place_names_var is not None else None)
 
         return correct_answer, incorrect_answers
 
@@ -484,12 +478,13 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
                 region_results.append({"region": region_name, "correlation": corr})
 
         # Analyze overall trend
-        positive_count = sum(1 for r in region_results if r["correlation"] > 0.5)
-        negative_count = sum(1 for r in region_results if r["correlation"] < -0.5)
+        positive_count = sum(1 for r in region_results if r["correlation"] > 0)
+        negative_count = sum(1 for r in region_results if r["correlation"] < 0)
 
         # Analyze detailed locations
         max_region_num = max(region_results, key=lambda x: abs(x["correlation"]))
         max_region_trend = "positive" if max_region_num['correlation'] > 0 else "negative"
+        max_region_value = max_region_num['correlation']
         max_region_num = max_region_num["region"]
         other_regions_num = [r["region"] for r in region_results if r["region"] != max_region_num]
         other_regions_num = np.random.choice(other_regions_num, 3)
@@ -499,7 +494,12 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         top_k_indices_correct_num = sample_row_col_indices_from_region(regions_diff, max_region_num, k=2, incorrect=False)
         top_k_indices_incorrect_num = [sample_row_col_indices_from_region(regions_diff, region, k=2, incorrect=True) for region in other_regions_num]
 
-        if positive_count >= 8:  # with negative_count <= 1 out of 9
+        if verbose:
+            print('positive_count', positive_count, 'negative_count', negative_count, 'max_region_value', max_region_value)
+        if max_region_value < 0.2:
+            correct_trend = "no significant"
+            incorrect_trend = ["highly positive", "slightly positive", "highly negative"]
+        elif positive_count >= 8:  # with negative_count <= 1 out of 9
             correct_trend = "highly positive"
             incorrect_trend = ["highly negative", "slightly negative", "no significant"]
         elif negative_count >= 8:  # with positive_count <= 1 out of 9
@@ -518,20 +518,21 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         correct_answer = {
             'trend': {
                 'region': f"Overall {correct_trend} correlation.",
-                'indices': f"Overall {correct_trend} correlation.",
-                'places': f"Overall {correct_trend} correlation."
-            },
-            'location': {
-                'region': f"The region around {max_region_num} has the largest {max_region_trend} correlation.",
-                'indices': f"The region around blocks {top_k_indices_correct_num} has the largest {max_region_trend} correlation.",
-                'places': f"The region around the textual marks {correct_place_names_num} on the map has the largest {max_region_trend} correlation." if correct_place_names_num is not None else None
-            },
+            }
         }
-        correct_answer['merge_two'] = {
-            'region': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['region'][1:],
-            'indices': correct_answer['trend']['indices'][:-1] + ' and t' + correct_answer['location']['indices'][1:],
-            'places': correct_answer['trend']['places'][:-1] + ' and t' + correct_answer['location']['places'][1:] if correct_place_names_num is not None else None
-        }
+        if correct_trend != "no significant":
+            correct_answer.update({
+                'location': {
+                    'region': f"The region around {max_region_num} has the largest {max_region_trend} correlation.",
+                    'indices': f"The region around blocks {top_k_indices_correct_num} has the largest {max_region_trend} correlation.",
+                    'places': f"The region around the textual marks {correct_place_names_num} on the map has the largest {max_region_trend} correlation." if correct_place_names_num is not None else None
+                },
+            })
+            correct_answer['merge_two'] = {
+                'region': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['region'][1:],
+                'indices': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['indices'][1:],
+                'places': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['places'][1:] if correct_place_names_num is not None else None
+            }
 
         incorrect_answers = {
             'trend': {
@@ -539,41 +540,34 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
                     f"Overall {incorrect_trend[0]} correlation.",
                     f"Overall {incorrect_trend[1]} correlation.",
                     f"Overall {incorrect_trend[2]} correlation.",
-                ],
-                'indices': [
-                    f"Overall {incorrect_trend[0]} correlation.",
-                    f"Overall {incorrect_trend[1]} correlation.",
-                    f"Overall {incorrect_trend[2]} correlation.",
-                ],
-                'places': [
-                    f"Overall {incorrect_trend[0]} correlation.",
-                    f"Overall {incorrect_trend[1]} correlation.",
-                    f"Overall {incorrect_trend[2]} correlation.",
                 ]
-            },
-            'location': {
-                'region': [
-                    f"The region around {other_regions_num[0]} has the largest {max_region_trend} correlation.",
-                    f"The region around {other_regions_num[1]} has the largest {max_region_trend} correlation.",
-                    f"The region around {other_regions_num[2]} has the largest {max_region_trend} correlation.",
-                ],
-                'indices': [
-                    f"The region around blocks {top_k_indices_incorrect_num[0]} has the largest {max_region_trend} correlation.",
-                    f"The region around blocks {top_k_indices_incorrect_num[1]} has the largest {max_region_trend} correlation.",
-                    f"The region around blocks {top_k_indices_incorrect_num[2]} has the largest {max_region_trend} correlation.",
-                ],
-                'places': [
-                    f"The region around the textual marks {incorrect_place_names_num[0]} on the map has the largest {max_region_trend} correlation.",
-                    f"The region around the textual marks {incorrect_place_names_num[1]} on the map has the largest {max_region_trend} correlation.",
-                    f"The region around the textual marks {incorrect_place_names_num[2]} on the map has the largest {max_region_trend} correlation.",
-                ] if incorrect_place_names_num is not None else None
-            },
-            'merge_two': {'region': [], 'indices': [], 'places': []}
+            }
         }
-        for i in range(3):
-            incorrect_answers['merge_two']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['region'][i][1:])
-            incorrect_answers['merge_two']['indices'].append(incorrect_answers['trend']['indices'][i][:-1] + ' and t' + incorrect_answers['location']['indices'][i][1:])
-            incorrect_answers['merge_two']['places'].append(incorrect_answers['trend']['places'][i][:-1] + ' and t' + incorrect_answers['location']['places'][i][1:] if correct_place_names_num is not None else None)
+        if correct_trend != "no significant":
+            incorrect_answers.update({
+                'location': {
+                    'region': [
+                        f"The region around {other_regions_num[0]} has the largest {max_region_trend} correlation.",
+                        f"The region around {other_regions_num[1]} has the largest {max_region_trend} correlation.",
+                        f"The region around {other_regions_num[2]} has the largest {max_region_trend} correlation.",
+                    ],
+                    'indices': [
+                        f"The region around blocks {top_k_indices_incorrect_num[0]} has the largest {max_region_trend} correlation.",
+                        f"The region around blocks {top_k_indices_incorrect_num[1]} has the largest {max_region_trend} correlation.",
+                        f"The region around blocks {top_k_indices_incorrect_num[2]} has the largest {max_region_trend} correlation.",
+                    ],
+                    'places': [
+                        f"The region around the textual marks {incorrect_place_names_num[0]} on the map has the largest {max_region_trend} correlation.",
+                        f"The region around the textual marks {incorrect_place_names_num[1]} on the map has the largest {max_region_trend} correlation.",
+                        f"The region around the textual marks {incorrect_place_names_num[2]} on the map has the largest {max_region_trend} correlation.",
+                    ] if incorrect_place_names_num is not None else None
+                },
+                'merge_two': {'region': [], 'indices': [], 'places': []}
+            })
+            for i in range(3):
+                incorrect_answers['merge_two']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['region'][i][1:])
+                incorrect_answers['merge_two']['indices'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['indices'][i][1:])
+                incorrect_answers['merge_two']['places'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['places'][i][1:] if correct_place_names_num is not None else None)
 
         return correct_answer, incorrect_answers
 

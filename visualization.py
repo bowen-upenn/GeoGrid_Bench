@@ -22,13 +22,17 @@ from selenium.webdriver.chrome.options import Options
 import ocr
 
 
-def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
+def overlay_heatmap_on_map(matrix, variable_name, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
     # Use visualize_heatmap to create the heatmap
     fig, ax = plt.subplots(figsize=(10, 8))
     mid_point = (matrix.max().max() + matrix.min().min()) / 2
     norm = TwoSlopeNorm(vmin=matrix.min().min(), vmax=matrix.max().max(), vcenter=mid_point)
     colormap = plt.get_cmap('coolwarm')
-    heatmap = ax.imshow(matrix, cmap=colormap, norm=norm)
+    heatmap = ax.imshow(matrix, cmap=colormap, norm=color_norm)
+
+    # Add color bar
+    cbar = plt.colorbar(heatmap, ax=ax, orientation='vertical', shrink=0.8)
+    cbar.set_label('Values', fontsize=18, fontweight='bold')
 
     # Add column and row indices as red bold text
     ax.set_xticks(range(len(matrix.columns)))
@@ -108,14 +112,14 @@ def overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_k
     return screenshot, width, height
 
 
-def visualize_heatmap(matrix, variable_name, output_path="heatmap", verbose=False):
+def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", verbose=False):
     # Normalize the matrix for color mapping
     norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
     colormap = plt.get_cmap('coolwarm')
 
     # Create the heatmap visualization
     fig, ax = plt.subplots(figsize=(10, 8))
-    heatmap = ax.imshow(matrix, cmap=colormap, norm=norm)
+    heatmap = ax.imshow(matrix, cmap=colormap, norm=color_norm)
 
     # Add column and row indices as red bold text
     for i, row in enumerate(matrix.index):
@@ -147,15 +151,15 @@ def visualize_heatmap(matrix, variable_name, output_path="heatmap", verbose=Fals
 
 
 
-def visualize_grids(matrix, variable_name, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
+def visualize_grids(matrix, variable_name, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, output_path=f"{output_path}.png", verbose=verbose)
+    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, color_norm, output_path=f"{output_path}.png", verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, variable_name, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
+    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(matrix, variable_name, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height
