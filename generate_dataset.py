@@ -78,12 +78,20 @@ def generate_dataset(args):
         """
         The following answers come from one of the top place names shown on the actual map
         """
-        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, filled_values['climate_variable1'], center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
+        if 'location2' in filled_values:
+            title1, title2 = filled_values['location1'], filled_values['location2']
+        elif 'time_frame2' in filled_values:
+            title1, title2 = filled_values['time_frame1'], filled_values['time_frame2']
+            title2 = filled_values['time_frame2']
+        else:
+            title1, title2 = filled_values['climate_variable1'], filled_values['climate_variable2'] if 'climate_variable2' in filled_values else None
+
+        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, title1, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
         heatmap2, overlay2, overlay_path2 = None, None, None
         if 'climate_variable2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable2'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, title2, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
         elif 'location2' in filled_values or 'time_frame2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, filled_values['climate_variable1'], center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, title2, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
 
         if heatmap2 is not None:
             heatmap_merged = utils.merge_two_figures(heatmap1, heatmap2)
