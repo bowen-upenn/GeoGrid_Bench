@@ -304,6 +304,11 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                                 continue
                             if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
                                 continue
+                            # Ensure time causality
+                            if 'mid-century' in time_frame and 'historical' in time_frame2:
+                                continue
+                            if 'end-century' in time_frame and ('historical' in time_frame2 or 'mid-century' in time_frame2):
+                                continue
 
                             filled_values['time_frame2'] = time_frame2
 
@@ -314,6 +319,11 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                                 print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
                                 print(formatted_question)
                     else:
+                        # If there are two different climate variables, make sure that they share the same timeframe1 if there is no timeframe2
+                        if 'climate_variable2' in filled_values and 'time_frame2' not in filled_values:
+                            if filled_values['time_frame1'] not in template_question_manager.allowed_time_frames[filled_values['climate_variable2']]:
+                                continue
+
                         # Format the question
                         formatted_question = question.format(**filled_values)
                         data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
@@ -370,14 +380,38 @@ def generate_one_for_each_template(cmd_args, template_question_manager, location
 
             elif variable in ['time_frame1', 'time_frame2']:
                 if variable == 'time_frame1':
-                    filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
+                    done = False
+                    while not done:
+                        filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
+                        if 'climate_variable2' in filled_values:
+                            if filled_values['time_frame1'] in template_question_manager.full_time_frames[filled_values['climate_variable2']]:
+                                done = True
+                            else:
+                                done = False
+                        else:
+                            done = True
                 else:
                     assert 'time_frame1' in filled_values, "time_frame1 must be set before time_frame2"
 
                     # Filter time_frame2 to avoid conflicting RCP scenarios
                     time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in filled_values['time_frame1'] else 'RCP8.5' if 'RCP8.5' in filled_values['time_frame1'] else None
-                    filled_values['time_frame2'] = random.choice([
-                        var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()])
+                    done = False
+                    while not done:
+                        time_frame2 = random.choice([var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()])
+                        filled_values['time_frame2'] = time_frame2
+
+                        done = True
+                        if time_frame2 == filled_values['time_frame1']:
+                            done = False
+                        if time_frame1_rcp == 'RCP4.5' and 'RCP8.5' in time_frame2:
+                            done = False
+                        if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
+                            done = False
+                        if 'mid-century' in filled_values['time_frame1'] and 'historical' in filled_values['time_frame2']:
+                            done = False
+                        if 'end-century' in filled_values['time_frame1'] and ('historical' in filled_values['time_frame2'] or 'mid-century' in filled_values['time_frame2']):
+                            done = False
+
 
         # Format the question
         formatted_question = question.format(**filled_values)

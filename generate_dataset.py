@@ -34,13 +34,13 @@ def generate_dataset(args):
             continue
         if i == 4:
             break
-        if args['inference']['verbose']:
-            print(f'{utils.Colors.HEADER}Processing data sample {i}{utils.Colors.ENDC}')
 
         question = data_sample['question']
         filled_values = data_sample['filled_values']
         template = data_sample['template']
         rephrased_question = llm.query_llm(step='rephrase_question', content=question, assistant=False, verbose=False)
+        if args['inference']['verbose']:
+            print(f'{utils.Colors.HEADER}Processing data sample {i}. Question {question}{utils.Colors.ENDC}')
 
         # Load data for climate_variable1
         climate_variable1 = filled_values['climate_variable1']
