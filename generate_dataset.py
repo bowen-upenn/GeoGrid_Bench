@@ -31,9 +31,7 @@ def generate_dataset(args):
     ppocr = ocr.OCR()
 
     for i, data_sample in tqdm(enumerate(dataloader('./data/test_filled_questions.json'))):
-        if i < 3:
-            continue
-        if i == 4:
+        if i > 0:
             break
 
         question = data_sample['question']
@@ -47,7 +45,7 @@ def generate_dataset(args):
         climate_variable1 = filled_values['climate_variable1']
         location_description1 = filled_values['location1']
         time_period1 = filled_values['time_frame1']
-        data_var1, crossmodel_indices1, latlong1 = retrieve_data_from_location(climate_variable1, location_description1, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
+        data_var1, crossmodel_indices1, latlong1, data_df1, df_col_name1, cell_geometries1 = retrieve_data_from_location(climate_variable1, location_description1, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
         data_var1 = utils.reformat_to_2d_table(data_var1, crossmodel_indices1)
 
         # Load data for climate_variable2
@@ -56,20 +54,20 @@ def generate_dataset(args):
             climate_variable2 = filled_values['climate_variable2']
             if time_period1 not in utils.full_time_frames[climate_variable2]:
                 continue
-            data_var2, crossmodel_indices2, latlong2 = retrieve_data_from_location(climate_variable2, location_description1, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
+            data_var2, crossmodel_indices2, latlong2, data_df2, df_col_name2, cell_geometries2 = retrieve_data_from_location(climate_variable2, location_description1, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
             data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
         else:
             if 'location2' in filled_values:
                 # Same climate variable but at two different locations
                 assert 'time_frame2' not in filled_values
                 location_description2 = filled_values['location2']
-                data_var2, crossmodel_indices2, latlong2 = retrieve_data_from_location(climate_variable1, location_description2, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
+                data_var2, crossmodel_indices2, latlong2, data_df2, df_col_name2, cell_geometries2 = retrieve_data_from_location(climate_variable1, location_description2, time_period1, llm, args['inference']['geometry'], args['inference']['radius'])
                 data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
             elif 'time_frame2' in filled_values:
                 # Same climate variable but at two different time periods
                 assert 'location2' not in filled_values
                 time_period2 = filled_values['time_frame2']
-                data_var2, crossmodel_indices2, latlong2 = retrieve_data_from_location(climate_variable1, location_description1, time_period2, llm, args['inference']['geometry'], args['inference']['radius'])
+                data_var2, crossmodel_indices2, latlong2, data_df2, df_col_name2, cell_geometries2 = retrieve_data_from_location(climate_variable1, location_description1, time_period2, llm, args['inference']['geometry'], args['inference']['radius'])
                 data_var2 = utils.reformat_to_2d_table(data_var2, crossmodel_indices2)
 
         qa = {"question": question, "rephrased_question": rephrased_question, "filled_values": filled_values, "template": template, "data_var1": data_var1, "latlong1": latlong1}
@@ -88,17 +86,17 @@ def generate_dataset(args):
             title1, title2 = filled_values['climate_variable1'], filled_values['climate_variable2'] if 'climate_variable2' in filled_values else None
 
         # Define a global minimum, maximum, and midpoint across both datasets
-        global_min = min(data_var1.min().min(), data_var2.min().min())
-        global_max = max(data_var1.max().max(), data_var2.max().max())
+        global_min = min(data_var1.min().min(), data_var2.min().min()) if data_var2 is not None else data_var1.min().min()
+        global_max = max(data_var1.max().max(), data_var2.max().max()) if data_var2 is not None else data_var1.max().max()
         global_midpoint = (global_max + global_min) / 2
         color_norm = TwoSlopeNorm(vmin=global_min, vmax=global_max, vcenter=global_midpoint)
 
-        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_var1, title1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
-        heatmap2, overlay2, overlay_path2 = None, None, None
+        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1 = visualization.visualize_grids(data_df1, data_var1, title1, df_col_name1, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
+        heatmap2, overlay2, overlay_path2, data_df2, df_col_name2, cell_geometries2 = None, None, None, None, None, None
         if 'climate_variable2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, title2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
         elif 'location2' in filled_values or 'time_frame2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_var2, title2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2 = visualization.visualize_grids(data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
 
         if heatmap2 is not None:
             heatmap_merged = utils.merge_two_figures(heatmap1, heatmap2)
@@ -108,12 +106,12 @@ def generate_dataset(args):
             if args['inference']['verbose']:
                 print("Merged heatmap and overlay saved.")
 
-        """ 
+        """
         The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
         """
-        correct_answer, incorrect_answers = oracle.oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, location_description1, data_var2, overlay2, overlay_path2, location_description2, args['inference']['verbose'])
-        qa["correct_answer"] = correct_answer
-        qa["incorrect_answers"] = incorrect_answers
+        # correct_answer, incorrect_answers = oracle.oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, location_description1, data_var2, overlay2, overlay_path2, location_description2, args['inference']['verbose'])
+        qa["correct_answer"] = "" #correct_answer
+        qa["incorrect_answers"] = ["", "", ""] #incorrect_answers
 
         if args['inference']['verbose']:
             utils.print_qa(qa)

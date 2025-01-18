@@ -148,7 +148,10 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
     if verbose:
         print('crossmodel_indices', crossmodel_indices)
 
-    return intersecting_cells, crossmodel_indices
+    # Use crossmodal indices to retrieve geometry from grid_cells_gdf
+    cell_geometries = grid_cells_gdf[grid_cells_gdf['Crossmodel'].isin(crossmodel_indices)]
+
+    return intersecting_cells, crossmodel_indices, cell_geometries
 
 
 def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, radius=36, verbose=False):
@@ -167,14 +170,14 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     lat, lon = latlong[0], latlong[1]
 
     # Retrieve the crossmodel indices in the database
-    intersecting_cells, crossmodel_indices = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
+    intersecting_cells, crossmodel_indices, cell_geometries = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
 
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
     data = data[time_period].values
     if verbose:
         print(data)
-    return data, crossmodel_indices, latlong
+    return data, crossmodel_indices, latlong, data_df, time_period, cell_geometries
 
 
 if __name__ == "__main__":
@@ -199,6 +202,6 @@ if __name__ == "__main__":
         print('Error reading the config file')
     llm = QueryLLM(args)
 
-    data, crossmodel_indices, latlong = retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.radius, cmd_args.verbose)
+    data, crossmodel_indices, latlong, data_df, time_period, cell_geometries = retrieve_data_from_location(cmd_args.var, cmd_args.city, cmd_args.time, llm, cmd_args.geometry, cmd_args.radius, cmd_args.verbose)
     pivot_table = utils.reformat_to_2d_table(data, crossmodel_indices)
     print(pivot_table)
