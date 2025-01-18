@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize, TwoSlopeNorm
-from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
 import os
@@ -11,10 +8,14 @@ import requests
 import json
 import ast
 
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize, TwoSlopeNorm
+from PIL import Image, ImageDraw, ImageFont
 import folium
 from folium.raster_layers import ImageOverlay
+from folium import Html, Element
 import geopandas as gpd
-from shapely.geometry import Point, Polygon
+import branca.colormap as cm
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -24,89 +25,11 @@ from selenium.webdriver.chrome.options import Options
 import ocr
 
 
-def categorize_fwi(value):
-    """Categorize the FWI value into its corresponding class and return the value and category."""
-    if value <= 9:
-        return 'Low'
-    elif value <= 21:
-        return 'Medium'
-    elif value <= 34:
-        return 'High'
-    elif value <= 39:
-        return 'Very High'
-    elif value <= 53:
-        return 'Extreme'
-    else:
-        return 'Very Extreme'
-
-
-def fwi_color(value):
-    fwi_class_colors = {
-        'Low': 'rgb(255, 255, 0, 0.5)',
-        'Medium': 'rgb(255, 204, 0, 0.5)',
-        'High': 'rgb(255, 153, 0, 0.5)',
-        'Very High': 'rgb(255, 102, 0, 0.5)',
-        'Extreme': 'rgb(255, 51, 0, 0.5)',
-        'Very Extreme': 'rgb(255, 0, 0, 0.5)'
-    }
-    return fwi_class_colors[categorize_fwi(value)]
-
-
-def fwi_color_plt(value):
-    fwi_class_colors = {
-        'Low': (1.0, 1.0, 0.0, 0.5),  # Yellow with 50% transparency
-        'Medium': (1.0, 0.8, 0.0, 0.5),  # Orange with 50% transparency
-        'High': (1.0, 0.6, 0.0, 0.5),  # Darker orange with 50% transparency
-        'Very High': (1.0, 0.4, 0.0, 0.5),  # Even darker orange with 50% transparency
-        'Extreme': (1.0, 0.2, 0.0, 0.5),  # Red with 50% transparency
-        'Very Extreme': (1.0, 0.0, 0.0, 0.5)  # Dark red with 50% transparency
-    }
-    return fwi_class_colors[categorize_fwi(value)]
-
-
-def add_legend():
-        """Adds a custom legend with colors for FWI to a Folium map."""
-        legend_html = """
-        <div style="
-                    bottom: 5px; left: 5px; width: auto; height: 50px; 
-                    border:1px solid grey; z-index:9999; font-size:12px;
-                    background: white; opacity: 0.9; padding: 2px; color: black; display: flex; align-items: center;justify-content: center;">
-        <i style="background:rgb(255, 255, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; Low &nbsp;|&nbsp;
-        <i style="background:rgb(255, 204, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; Medium &nbsp;|&nbsp;
-        <i style="background:rgb(255, 153, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; High &nbsp;|&nbsp;
-        <i style="background:rgb(255, 102, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; Very High &nbsp;|&nbsp;
-        <i style="background:rgb(255, 51, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; Extreme &nbsp;|&nbsp;
-        <i style="background:rgb(255, 0, 0, 0.5); width: 24px; height: 24px;"></i> &nbsp; Very Extreme
-        </div>
-        """
-        # write in the middle of the page
-        st.write(legend_html, unsafe_allow_html=True)
-
-
-def get_map(crossmodels, df, period, season='spring'):
-    season_columns = [col for col in df.columns if season in col and period in col]
-    season_fwi_df = df[['Crossmodel'] + season_columns]
-    col_name = season_columns[0]
-    season_fwi_df.loc[:, 'class'] = season_fwi_df[col_name].apply(categorize_fwi)
-
-    fwi_df_geo = gpd.GeoDataFrame(crossmodels.merge(season_fwi_df, left_on='Crossmodel', right_on='Crossmodel'))
-
-    m = folium.Map(location=st.session_state.center, zoom_start=st.session_state.zoom)
-    m.add_child(
-        folium.features.GeoJson(fwi_df_geo,
-            tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name, 'class'], aliases=['Crossmodel', 'FWI', 'class']),
-            style_function=lambda x: {'fillColor': fwi_color(x['properties'][col_name]),
-                                      'color': fwi_color(x['properties'][col_name])})
-    )
-    return m
-
-
 def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
     # Extract required columns
     variable_columns = [col for col in data_df.columns if time_period == col]
     variable_df = data_df[['Crossmodel'] + variable_columns]
     col_name = variable_columns[0]
-    variable_df['class'] = variable_df[col_name].apply(categorize_fwi)
 
     # Merge with geometries
     variable_df = variable_df.merge(cell_geometries, on='Crossmodel', how='inner')
@@ -119,20 +42,26 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
         data_df_geo['hist'] = data_df_geo['hist_x']  # Or choose 'hist_y'
         data_df_geo.drop(columns=['hist_x', 'hist_y'], inplace=True)
     data_df_geo = data_df_geo.loc[:, ~data_df_geo.columns.duplicated()]
-    print("Columns after cleanup:", data_df_geo.columns)
 
     # Check if required fields exist
-    required_fields = ['Crossmodel', col_name, 'class', 'geometry']
+    required_fields = ['Crossmodel', col_name, 'geometry']
     for field in required_fields:
         if field not in data_df_geo.columns:
             raise ValueError(f"Missing required field '{field}' in data_df_geo.")
 
     # Function to map numerical value to color in the provided color_norm
     def value_to_color(value):
-        rgba = colormap(color_norm(value))  # Directly use color_norm for normalization
-        return f'rgba({int(rgba[0] * 255)}, {int(rgba[1] * 255)}, {int(rgba[2] * 255)}, {rgba[3]})'
+        if value is None or np.isnan(value):
+            return 'rgba(0,0,0,0)'
+        color = colormap(value)
+        return color
 
-    colormap = plt.get_cmap('coolwarm')
+    # colormap = cm.linear.RdYlBu_10.scale(color_norm.vmin, color_norm.vmax)
+    colormap = cm.LinearColormap(
+        colors=['#276AAE', '#7FB6D5', '#E6E1DE', '#F39F7B', '#B41D2E'],
+        vmin=color_norm.vmin,
+        vmax=color_norm.vmax
+    )
     data_df_geo['color'] = data_df_geo[col_name].apply(value_to_color)
 
     # Create the map
@@ -146,9 +75,11 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
                 'weight': 0.5,
                 'fillOpacity': 0.5,
             },
-            tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name, 'class']),
+            tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name]),
         )
     )
+    colormap.caption = "Values"
+    m.add_child(colormap)
 
     # Save map as HTML
     m.save(f"temp_map{output_path[-5]}.html")
@@ -181,6 +112,9 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
 
 
 def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", verbose=False):
+    # Flip the matrix upside down to match the map orientation
+    matrix = matrix.iloc[::-1]
+
     # Normalize the matrix for color mapping
     norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
     colormap = plt.get_cmap('coolwarm')
