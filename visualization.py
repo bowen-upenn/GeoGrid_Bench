@@ -102,65 +102,23 @@ def get_map(crossmodels, df, period, season='spring'):
 
 
 def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
-    # # crossmodels = data_df['Crossmodel']
-    # print('data_df', data_df)
-    # print('time_period', time_period)
-    # variable_columns = [col for col in data_df.columns if time_period == col]
-    # variable_df = data_df[['Crossmodel'] + variable_columns]
-    # print('variable_columns', variable_columns, 'variable_df', variable_df)
-    # col_name = variable_columns[0]
-    #
-    # variable_df.loc[:, 'class'] = variable_df[variable_columns[0]].apply(categorize_fwi)
-    # variable_df = variable_df.merge(cell_geometries, left_on='Crossmodel', right_on='Crossmodel')
-    # data_df_geo = gpd.GeoDataFrame(data_df.merge(variable_df, left_on='Crossmodel', right_on='Crossmodel'))
-    #
-    # m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
-    # m.add_child(
-    #     folium.features.GeoJson(data_df_geo,
-    #                             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name, 'class']),
-    #                             # style_function=lambda x: {'fillColor': fwi_color(x['properties'][col_name]),
-    #                             #                           'color': fwi_color(x['properties'][col_name])}
-    #                             )
-    # )
-
-    # Check for time_period column
-    variable_columns = [col for col in data_df.columns if time_period == col]
-    if not variable_columns:
-        raise ValueError(f"No columns matching time_period '{time_period}' found in data_df.")
-
     # Extract required columns
+    variable_columns = [col for col in data_df.columns if time_period == col]
     variable_df = data_df[['Crossmodel'] + variable_columns]
     col_name = variable_columns[0]
-
-    print("Selected variable_columns:", variable_columns)
-    print("Initial data_df columns:", data_df.columns)
-    print("Initial variable_df columns:", variable_df.columns)
-
-    # Add classification
     variable_df['class'] = variable_df[col_name].apply(categorize_fwi)
 
     # Merge with geometries
     variable_df = variable_df.merge(cell_geometries, on='Crossmodel', how='inner')
-    data_df_geo = gpd.GeoDataFrame(data_df.merge(variable_df, on='Crossmodel', how='inner'))
-
-    print("Merged data_df_geo columns:", data_df_geo.columns)
-
-    # Merge with suffixes to control duplication
     data_df_geo = gpd.GeoDataFrame(
         data_df.merge(variable_df, on='Crossmodel', how='inner', suffixes=('_x', '_y'))
     )
 
-    # Check for duplicate columns
-    print("Columns before cleanup:", data_df_geo.columns)
-
-    # Keep only the required 'hist' column
+    # Remove any other duplicated columns
     if 'hist_x' in data_df_geo.columns and 'hist_y' in data_df_geo.columns:
         data_df_geo['hist'] = data_df_geo['hist_x']  # Or choose 'hist_y'
         data_df_geo.drop(columns=['hist_x', 'hist_y'], inplace=True)
-
-    # Remove any other duplicated columns
     data_df_geo = data_df_geo.loc[:, ~data_df_geo.columns.duplicated()]
-
     print("Columns after cleanup:", data_df_geo.columns)
 
     # Check if required fields exist
@@ -170,72 +128,13 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
             raise ValueError(f"Missing required field '{field}' in data_df_geo.")
 
     # Create the map
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=9)
     m.add_child(
         folium.features.GeoJson(
             data_df_geo,
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name, 'class']),
         )
     )
-
-    # # Use visualize_heatmap to create the heatmap
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # mid_point = (matrix.max().max() + matrix.min().min()) / 2
-    # norm = TwoSlopeNorm(vmin=matrix.min().min(), vmax=matrix.max().max(), vcenter=mid_point)
-    # colormap = plt.get_cmap('coolwarm')
-    # heatmap = ax.imshow(matrix, cmap=colormap, norm=color_norm)
-    #
-    # # Add color bar
-    # cbar = plt.colorbar(heatmap, ax=ax, orientation='vertical', shrink=0.8)
-    # cbar.set_label('Values', fontsize=18, fontweight='bold')
-    #
-    # # Add column and row indices as red bold text
-    # ax.set_xticks(range(len(matrix.columns)))
-    # ax.set_yticks(range(len(matrix.index)))
-    # ax.set_xticklabels([f'C{col}' for col in matrix.columns], fontsize=15, color='red', fontweight='bold')
-    # ax.set_yticklabels([f'R{row}' for row in matrix.index], fontsize=15, color='red', fontweight='bold')
-    #
-    # # Save the figure to a buffer
-    # buf = io.BytesIO()
-    # plt.title('Heatmap of ' + variable_name, fontsize=18, fontweight='bold')
-    # plt.tight_layout()
-    # plt.savefig(buf, format='png', bbox_inches='tight')
-    # buf.seek(0)
-    # plt.close(fig)
-    #
-    # # Load the image from buffer and make it semi-transparent
-    # image = Image.open(buf)
-    # image = image.convert("RGBA")
-    # alpha = 100 if alpha else 255
-    # for y in range(image.height):
-    #     for x in range(image.width):
-    #         r, g, b, a = image.getpixel((x, y))
-    #         if a > 0 and ((r, g, b) != (255, 255, 255) and (r, g, b) != (255, 0, 0) and (r, g, b) != (0, 0, 0)):    # heatmaps
-    #             image.putpixel((x, y), (r, g, b, alpha))
-    #         elif (r, g, b) == (255, 255, 255):  # white background
-    #             image.putpixel((x, y), (r, g, b, 200))
-    #         elif (r, g, b) == (255, 0, 0) or (r, g, b) == (0, 0, 0):    # red and black text
-    #             image.putpixel((x, y), (r, g, b, 255))
-    #
-    # # Convert image to base64
-    # buffered = io.BytesIO()
-    # image.save(buffered, format="PNG")
-    # img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    # img_url = f"data:image/png;base64,{img_base64}"
-    #
-    # # Overlay the heatmap on the map
-    # half_size_deg = (size_km / 111) / 2  # Approximate conversion km -> degrees
-    # bounds = [[center_lat - half_size_deg, center_lon - half_size_deg],
-    #           [center_lat + half_size_deg, center_lon + half_size_deg]]
-
-    # # Create the map
-    # m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
-    # ImageOverlay(
-    #     name="Heatmap Overlay",
-    #     image=img_url,
-    #     bounds=bounds,
-    #     opacity=0.9
-    # ).add_to(m)
 
     # Save map as HTML
     m.save(f"temp_map{output_path[-5]}.html")

@@ -1,9 +1,9 @@
 [
     {
-        "question": "Which region in the Urbana, IL experienced the largest increase in cooling degree days during historical period?",
+        "question": "Which region in the San Jose, CA experienced the largest increase in cooling degree days during historical period?",
         "filled_values": {
             "climate_variable1": "cooling degree days",
-            "location1": "Urbana, IL",
+            "location1": "San Jose, CA",
             "time_frame1": "historical period"
         },
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
