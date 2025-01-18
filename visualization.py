@@ -127,11 +127,25 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
         if field not in data_df_geo.columns:
             raise ValueError(f"Missing required field '{field}' in data_df_geo.")
 
+    # Function to map numerical value to color in the provided color_norm
+    def value_to_color(value):
+        rgba = colormap(color_norm(value))  # Directly use color_norm for normalization
+        return f'rgba({int(rgba[0] * 255)}, {int(rgba[1] * 255)}, {int(rgba[2] * 255)}, {rgba[3]})'
+
+    colormap = plt.get_cmap('coolwarm')
+    data_df_geo['color'] = data_df_geo[col_name].apply(value_to_color)
+
     # Create the map
     m = folium.Map(location=[center_lat, center_lon], zoom_start=9)
     m.add_child(
         folium.features.GeoJson(
             data_df_geo,
+            style_function=lambda feature: {
+                'fillColor': feature['properties']['color'],
+                'color': 'black',  # border color
+                'weight': 0.5,
+                'fillOpacity': 0.5,
+            },
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name, 'class']),
         )
     )
