@@ -113,14 +113,14 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
                     continue
                 else:
                     folium.Marker(
-                        location=[lat + which_row * grid_height, lon],
+                        location=[lat + (which_row + 0.75) * grid_height, lon - 0.25 * grid_width],
                         icon=folium.DivIcon(
                             html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{col_label}</div>'
                         )
                     ).add_to(m)
             else:
                 folium.Marker(
-                    location=[lat + 0.75 * grid_height, lon],
+                    location=[lat + 0.75 * grid_height, lon - 0.25 * grid_width],
                     icon=folium.DivIcon(
                         html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{col_label}</div>'
                     )
