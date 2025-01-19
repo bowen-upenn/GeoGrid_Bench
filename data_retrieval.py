@@ -114,7 +114,7 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
 
     # Create the initial point
     point = Point(lon, lat)
-    point_gseries = gpd.GeoSeries([point], crs="EPSG:4326")  # Input assumed in WGS84
+    point_gseries = gpd.GeoSeries([point], crs="EPSG:4326")
 
     # Transform the point to match the grid cells CRS
     point_transformed = point_gseries.to_crs(grid_cells_crs)

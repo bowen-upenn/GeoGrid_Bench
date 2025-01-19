@@ -15,7 +15,9 @@ import folium
 from folium.raster_layers import ImageOverlay
 from folium import Html, Element
 import geopandas as gpd
+from shapely.geometry import Point
 import branca.colormap as cm
+from pyproj import Transformer
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -23,6 +25,108 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
 import ocr
+
+
+def add_crossmodel_indices_on_map(data_df_geo, m):
+    # Helper functions to extract numeric parts from row and column labels
+    def extract_row_id(row_label):
+        return int(row_label[1:])  # Extract number after 'R'
+
+    def extract_col_id(col_label):
+        return int(col_label[1:])  # Extract number after 'C'
+
+    transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+
+    all_indices = []
+    for index, row in data_df_geo.iterrows():
+        all_indices.append((row['Crossmodel'][:4], row['Crossmodel'][4:]))
+
+    # Initialize dictionaries to store results
+    smallest_column_per_row = {}
+    largest_row_per_column = {}
+
+    # Process all indices
+    for row, col in all_indices:
+        # Update smallest column for each row
+        if row not in smallest_column_per_row or extract_col_id(col) < extract_col_id(smallest_column_per_row[row]):
+            smallest_column_per_row[row] = col
+
+        # Update largest row for each column
+        if col not in largest_row_per_column or extract_row_id(row) > extract_row_id(largest_row_per_column[col]):
+            largest_row_per_column[col] = row
+
+    # grid shapes may vary based on the map, especially along ocean coasts or national boarders, so we calculate the average grid size
+    grid_width, grid_height = 0, 0
+    count_grid = 0
+    for index, row in data_df_geo.iterrows():  # Assuming data_df_geo contains the geometries
+        geometry = row['geometry']
+        if geometry.is_empty:
+            continue
+        try:
+            # find the width of each grid cell
+            all_lon = []
+            all_lat = []
+            for point in geometry.exterior.coords:
+                lon, lat = transformer.transform(point[0], point[1])
+                all_lon.append(lon)
+                all_lat.append(lat)
+            grid_width += max(all_lon) - min(all_lon)
+            grid_height += max(all_lat) - min(all_lat)
+            count_grid += 1
+        except Exception as e:
+            continue
+    grid_width /= count_grid
+    grid_height /= count_grid
+
+    for index, row in data_df_geo.iterrows():  # Assuming data_df_geo contains the geometries
+        geometry = row['geometry']
+        if geometry.is_empty:
+            continue
+
+        # Get the centroid of the geometry
+        centroid = geometry.centroid
+        y_center, x_center = centroid.y, centroid.x
+        lon, lat = transformer.transform(x_center, y_center)
+
+        # Get the row and column labels
+        row_label = row['Crossmodel'][:4]
+        col_label = row['Crossmodel'][4:]
+
+        # Show all rows in the left-most non-NaN column
+        if col_label == smallest_column_per_row[row_label]:
+            folium.Marker(
+                location=[lat, lon - 0.85 * grid_width],
+                icon=folium.DivIcon(
+                    html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{row_label}</div>'
+                )
+            ).add_to(m)
+
+        # Show all columns in the bottom-most non-NaN rows
+        global_min_col = min([extract_col_id(col) for col in smallest_column_per_row.values()])
+        global_min_row = min([extract_row_id(row) for row in smallest_column_per_row.keys()])
+
+        if row_label == largest_row_per_column[col_label]:
+            # if it is the leftmost column, always print the column number at the top, avoiding overlapping with the row number
+            if extract_row_id(col_label) == global_min_col:
+                which_row = extract_row_id(row_label) - global_min_row
+                if which_row > 3:   # would cause too much shifts
+                    continue
+                else:
+                    folium.Marker(
+                        location=[lat + which_row * grid_height, lon],
+                        icon=folium.DivIcon(
+                            html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{col_label}</div>'
+                        )
+                    ).add_to(m)
+            else:
+                folium.Marker(
+                    location=[lat + 0.75 * grid_height, lon],
+                    icon=folium.DivIcon(
+                        html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{col_label}</div>'
+                    )
+                ).add_to(m)
+
+    return m
 
 
 def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
@@ -78,6 +182,7 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name]),
         )
     )
+    m = add_crossmodel_indices_on_map(data_df_geo, m)
     colormap.caption = "Values"
     m.add_child(colormap)
 
