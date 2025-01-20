@@ -109,9 +109,9 @@ def generate_dataset(args):
         """
         The following answers come from one of the following relative locations: upper-left, upper-mid, upper-right, mid-left, center, mid-right, lower-left, lower-mid, lower-right
         """
-        # correct_answer, incorrect_answers = oracle.oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, location_description1, data_var2, overlay2, overlay_path2, location_description2, args['inference']['verbose'])
-        qa["correct_answer"] = "" #correct_answer
-        qa["incorrect_answers"] = ["", "", ""] #incorrect_answers
+        correct_answer, incorrect_answers = oracle.oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, location_description1, data_var2, overlay2, overlay_path2, location_description2, args['inference']['verbose'])
+        qa["correct_answer"] = correct_answer
+        qa["incorrect_answers"] = incorrect_answers
 
         if args['inference']['verbose']:
             utils.print_qa(qa)

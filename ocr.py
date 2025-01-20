@@ -4,6 +4,7 @@ import numpy as np
 import random
 import re
 import ast
+import math
 
 import utils
 
@@ -30,32 +31,79 @@ def find_heatmap_region(ocr_results):
     leftmost_col = min(box[0][0] for box in col_boxes)
     rightmost_col = max(box[1][0] for box in col_boxes)
 
-    # Construct the rectangle
-    heatmap_rect = [
-        [leftmost_col, uppermost_row],  # Top-left
-        [rightmost_col, uppermost_row],  # Top-right
-        [rightmost_col, lowermost_row],  # Bottom-right
-        [leftmost_col, lowermost_row],  # Bottom-left
+    # # Construct the rectangle
+    # heatmap_rect = [
+    #     [leftmost_col, uppermost_row],  # Top-left
+    #     [rightmost_col, uppermost_row],  # Top-right
+    #     [rightmost_col, lowermost_row],  # Bottom-right
+    #     [leftmost_col, lowermost_row],  # Bottom-left
+    # ]
+    # Step 1: Top-left remains the same
+    top_left = [leftmost_col, uppermost_row]
+
+    # Step 2: Calculate the top-right
+    angle_10_deg = math.radians(10)
+    top_right = [
+        rightmost_col,
+        uppermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
     ]
+
+    # Step 3: Calculate the lower-left
+    angle_80_deg = math.radians(80)
+    lower_left = [
+        leftmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
+        lowermost_row
+    ]
+
+    # Step 4: Calculate the lower-right
+    lower_right = [
+        rightmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
+        lowermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
+    ]
+
+    # Construct the rectangle
+    heatmap_rect = [top_left, top_right, lower_right, lower_left]
+    print('heatmap_rect', heatmap_rect)
     return heatmap_rect
+
+
+def is_point_in_box(point, vertices):
+    """
+        Check if a point (x, y) is inside a convex quadrilateral.
+
+        Args:
+        - point: Tuple (x, y) of the point to check.
+        - vertices: List of four vertices (in order) defining the quadrilateral.
+
+        Returns:
+        - True if the point is inside, False otherwise.
+        """
+
+    # x_min = min(box[0][0], box[3][0])
+    # x_max = max(box[1][0], box[2][0])
+    # y_min = min(box[0][1], box[1][1])
+    # y_max = max(box[2][1], box[3][1])
+    # return x_min <= x <= x_max and y_min <= y <= y_max
+
+    def cross_product(p1, p2, p3):
+        """Calculate the cross product of vector (p2 - p1) and (p3 - p1)."""
+        return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0])
+
+    x, y = point
+    signs = []
+    for i in range(len(vertices)):
+        p1 = vertices[i]
+        p2 = vertices[(i + 1) % len(vertices)]  # Next vertex (wrap around to the start)
+        signs.append(cross_product(p1, p2, (x, y)) > 0)
+
+    # Check if all cross products have the same sign
+    return all(signs) or not any(signs)
 
 
 def is_within_heatmap_rect(bbox, heatmap_rect):
     """Check if a bounding box is fully within the heatmap rectangle.
     boxes should have the format of [upper-left, upper-right, lower-right, lower-left] each of which is [col, row]
     """
-    # iou = utils.calculate_iou(bbox, heatmap_rect)
-    # print('bbox', bbox, 'heatmap_rect', heatmap_rect, 'iou', iou)
-    # return iou >= 0.5
-
-    def is_point_in_box(point, box):
-        x, y = point
-        x_min = min(box[0][0], box[3][0])
-        x_max = max(box[1][0], box[2][0])
-        y_min = min(box[0][1], box[1][1])
-        y_max = max(box[2][1], box[3][1])
-        return x_min <= x <= x_max and y_min <= y <= y_max
-
     for corner in bbox:
         if is_point_in_box(corner, heatmap_rect):
             return True
@@ -70,25 +118,75 @@ def divide_heatmap_into_regions(heatmap_rect, ocr_results):
     :param ocr_results: OCR results with bounding boxes and detected text
     :return: Dictionary of 9 regions with OCR names assigned to them
     """
-    x_min, y_min, x_max, y_max = heatmap_rect[0][0], heatmap_rect[0][1], heatmap_rect[2][0], heatmap_rect[2][1]
-    width = x_max - x_min
-    height = y_max - y_min
+    top_left, top_right, lower_right, lower_left = heatmap_rect
 
-    # Define boundaries for 9 regions
-    row_third = height // 3
-    col_third = width // 3
+    height = lower_left[1] - top_left[1]
+    width = top_right[0] - top_left[0]
+    row_third = height / 3
+    col_third = width / 3
+
+    # Calculate the boundaries for the 9 regions, considering the slant
+    def interpolate_point(p1, p2, factor):
+        """Interpolate between two points by a given factor."""
+        return [p1[0] + (p2[0] - p1[0]) * factor, p1[1] + (p2[1] - p1[1]) * factor]
 
     region_boundaries = {
-        "upper-left": (x_min, y_min, x_min + col_third, y_min + row_third),
-        "upper-mid": (x_min + col_third, y_min, x_min + 2 * col_third, y_min + row_third),
-        "upper-right": (x_min + 2 * col_third, y_min, x_max, y_min + row_third),
-        "mid-left": (x_min, y_min + row_third, x_min + col_third, y_min + 2 * row_third),
-        "center": (x_min + col_third, y_min + row_third, x_min + 2 * col_third, y_min + 2 * row_third),
-        "mid-right": (x_min + 2 * col_third, y_min + row_third, x_max, y_min + 2 * row_third),
-        "lower-left": (x_min, y_min + 2 * row_third, x_min + col_third, y_max),
-        "lower-mid": (x_min + col_third, y_min + 2 * row_third, x_min + 2 * col_third, y_max),
-        "lower-right": (x_min + 2 * col_third, y_min + 2 * row_third, x_max, y_max)
+        "upper-left": [top_left,
+                       interpolate_point(top_left, top_right, 1 / 3),
+                       interpolate_point(lower_left, lower_right, 1 / 3),
+                       interpolate_point(top_left, lower_left, 1 / 3)],
+        "upper-mid": [interpolate_point(top_left, top_right, 1 / 3),
+                      interpolate_point(top_left, top_right, 2 / 3),
+                      interpolate_point(top_right, lower_left, 1 / 3),
+                      interpolate_point(top_left, lower_right, 1 / 3)],
+        "upper-right": [interpolate_point(top_left, top_right, 2 / 3),
+                        top_right,
+                        interpolate_point(top_right, lower_right, 1 / 3),
+                        interpolate_point(top_right, lower_left, 1 / 3),],
+        "mid-left": [interpolate_point(top_left, lower_left, 1 / 3),
+                     interpolate_point(top_left, lower_right, 1 / 3),
+                     interpolate_point(top_right, lower_left, 2 / 3),
+                     interpolate_point(top_left, lower_left, 2 / 3)],
+        "center": [interpolate_point(top_left, lower_right, 1 / 3),
+                   interpolate_point(top_right, lower_left, 1 / 3),
+                   interpolate_point(top_left, lower_right, 2 / 3),
+                   interpolate_point(top_right, lower_left, 2 / 3)],
+        "mid-right": [interpolate_point(top_right, lower_left, 1 / 3),
+                      interpolate_point(top_right, lower_right, 1 / 3),
+                      interpolate_point(top_right, lower_right, 2 / 3),
+                      interpolate_point(top_left, lower_right, 2 / 3)],
+        "lower-left": [interpolate_point(top_left, lower_left, 2 / 3),
+                       interpolate_point(top_right, lower_left, 2 / 3),
+                       interpolate_point(lower_left, lower_right, 2 / 3),
+                       lower_left],
+        "lower-mid": [interpolate_point(top_right, lower_left, 2 / 3),
+                      interpolate_point(top_left, lower_right, 1 / 3),
+                      interpolate_point(lower_left, lower_right, 2 / 3),
+                      interpolate_point(lower_left, lower_right, 1 / 3)],
+        "lower-right": [interpolate_point(top_left, lower_right, 2 / 3),
+                        interpolate_point(top_right, lower_right, 2 / 3),
+                        lower_right,
+                        interpolate_point(lower_left, lower_right, 2 / 3)]
     }
+    # x_min, y_min, x_max, y_max = heatmap_rect[0][0], heatmap_rect[0][1], heatmap_rect[2][0], heatmap_rect[2][1]
+    # width = x_max - x_min
+    # height = y_max - y_min
+    #
+    # # Define boundaries for 9 regions
+    # row_third = height // 3
+    # col_third = width // 3
+    #
+    # region_boundaries = {
+    #     "upper-left": (x_min, y_min, x_min + col_third, y_min + row_third),
+    #     "upper-mid": (x_min + col_third, y_min, x_min + 2 * col_third, y_min + row_third),
+    #     "upper-right": (x_min + 2 * col_third, y_min, x_max, y_min + row_third),
+    #     "mid-left": (x_min, y_min + row_third, x_min + col_third, y_min + 2 * row_third),
+    #     "center": (x_min + col_third, y_min + row_third, x_min + 2 * col_third, y_min + 2 * row_third),
+    #     "mid-right": (x_min + 2 * col_third, y_min + row_third, x_max, y_min + 2 * row_third),
+    #     "lower-left": (x_min, y_min + 2 * row_third, x_min + col_third, y_max),
+    #     "lower-mid": (x_min + col_third, y_min + 2 * row_third, x_min + 2 * col_third, y_max),
+    #     "lower-right": (x_min + 2 * col_third, y_min + 2 * row_third, x_max, y_max)
+    # }
 
     # Initialize a dictionary to store OCR results for each region
     names_in_regions = {key: [] for key in region_boundaries.keys()}
@@ -102,8 +200,9 @@ def divide_heatmap_into_regions(heatmap_rect, ocr_results):
         box_center_y = (box_y_min + box_y_max) // 2
 
         for region_name, boundary in region_boundaries.items():
-            x1, y1, x2, y2 = boundary
-            if x1 <= box_center_x <= x2 and y1 <= box_center_y <= y2:
+            # x1, y1, x2, y2 = boundary
+            # if x1 <= box_center_x <= x2 and y1 <= box_center_y <= y2:
+            if is_point_in_box((box_center_x, box_center_y), boundary):
                 names_in_regions[region_name].append(text)
                 break
 
@@ -117,6 +216,8 @@ def classify_bounding_boxes_by_color(llm, image, ocr_results, curr_city, max_num
     def color_distance(c1, c2):
         return np.sqrt(sum((a - b) ** 2 for a, b in zip(c1, c2)))
 
+    # red_rgb = np.array([180, 29, 46])
+    # blue_rgb = np.array([39, 106, 174])
     red_rgb = np.array([255, 0, 0])
     blue_rgb = np.array([0, 0, 255])
 

@@ -95,6 +95,11 @@ def extract_place_names(ppocr, llm, template, correct_region, overlay1, overlay_
 
     elif visual_qa_mode[template] == 'block' or visual_qa_mode[template] == 'block2':
         red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
+
+        # find the intersection between names in the correct region and names in the red_set
+        print('red_set', red_set)
+        red_set = list(set(names_in_regions[correct_region]) & set(red_set))
+
         correct_answer_place_names, incorrect_answers_place_names = ocr.randomly_sample_place_names(red_set, blue_set, invalid_names)
         if visual_qa_mode[template] == 'block2':
             ocr_results2, names_in_regions2 = ppocr.run_ocr_detection(overlay_path2)
@@ -141,16 +146,21 @@ def extract_place_names(ppocr, llm, template, correct_region, overlay1, overlay_
 
 def sample_row_col_indices_from_region(regions, target_region, k=3, incorrect=False):
     correct_region = regions[target_region]
-    if incorrect: # random k values in the region except the top k values in that region
-        all_values = correct_region.unstack().dropna()
-        top_k_values = all_values.nlargest(k)
-        remaining_values = all_values[~all_values.index.isin(top_k_values.index)]
-        if len(remaining_values) >= k:
-            sampled_values = remaining_values.sample(n=k, random_state=42)  # Ensure reproducibility with random_state
-        else:
-            sampled_values = remaining_values  # Fallback in case there are fewer remaining values than k
+    if incorrect:
+        # Randomly sample a region different from the target region
+        incorrect_region = np.random.choice([region for region in regions.keys() if region != target_region])
+        incorrect_region = regions[incorrect_region]
+        random_k_values = incorrect_region.unstack().dropna().sample(n=min(len(incorrect_region), k))
+        sampled_values = random_k_values
+        # all_values = correct_region.unstack().dropna()
+        # top_k_values = all_values.nlargest(k)
+        # remaining_values = all_values[~all_values.index.isin(top_k_values.index)]
+        # if len(remaining_values) >= k:
+        #     sampled_values = remaining_values.sample(n=k, random_state=42)
+        # else:
+        #     sampled_values = remaining_values  # Fallback in case there are fewer remaining values than k
     else:
-        top_k_values = correct_region.unstack().dropna().nlargest(k)
+        top_k_values = correct_region.unstack().dropna().nlargest(k)    # Always select the grid with the largest value within the target region
         sampled_values = top_k_values
 
     sampled_indices = [f"C{sampled_values.index[i][0]} R{sampled_values.index[i][1]}" for i in range(k)]
@@ -166,6 +176,8 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         """
         The oracle code first divides the data into 9 regions and calculates the average value for each region.
         """
+        # Flip the matrix upside down to match the map orientation
+        data_var1 = data_var1.iloc[::-1]
         regions = divide_into_regions(data_var1)
 
         region_averages = {}
@@ -184,6 +196,7 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
 
         # Prepare answers
         top_k_indices_correct_num = sample_row_col_indices_from_region(regions, max_region_num, k=2, incorrect=False)
+        top_k_indices_incorrect_num = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_num]
 
         correct_answer = {
             'location': {
@@ -200,9 +213,9 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
                     f"The region around {other_regions_num[2]} experienced the largest increase.",
                 ],
                 'indices': [
-                    f"The region around blocks {top_k_indices_correct_num} experienced the largest increase.",
-                    f"The region around blocks {top_k_indices_correct_num} experienced the largest increase.",
-                    f"The region around blocks {top_k_indices_correct_num} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect_num[0]} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect_num[1]} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect_num[2]} experienced the largest increase.",
                 ],
                 'places': [
                     f"The region around the textual marks {incorrect_place_names_num[0]} on the map experienced the largest increase.",
@@ -218,6 +231,8 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         """
         This oracle code calculates the spatial variation of the data and identifies the region with the largest spatial variation.
         """
+        # Flip the matrix upside down to match the map orientation
+        data_var1 = data_var1.iloc[::-1]
         regions = divide_into_regions(data_var1)
 
         region_averages = {}
@@ -237,6 +252,7 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
 
         # Prepare answers
         top_k_indices_correct_var = sample_row_col_indices_from_region(regions, max_region_var, k=2, incorrect=False)
+        top_k_indices_incorrect_var = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_var]
 
         correct_answer = {
             'variation': {
@@ -253,9 +269,9 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
                     f"The region around {other_regions_var[2]} experienced the largest spatial variation.",
                 ],
                 'indices': [
-                    f"The region around blocks {top_k_indices_correct_var} experienced the largest spatial variation.",
-                    f"The region around blocks {top_k_indices_correct_var} experienced the largest spatial variation.",
-                    f"The region around blocks {top_k_indices_correct_var} experienced the largest spatial variation.",
+                    f"The region around blocks {top_k_indices_incorrect_var[0]} experienced the largest spatial variation.",
+                    f"The region around blocks {top_k_indices_incorrect_var[1]} experienced the largest spatial variation.",
+                    f"The region around blocks {top_k_indices_incorrect_var[2]} experienced the largest spatial variation.",
                 ],
                 'places': [
                     f"The region around the textual marks {incorrect_place_names_var[0]} on the map experienced the largest spatial variation.",
@@ -272,6 +288,10 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         This oracle code calculates the change in a climate variable between two time frames in a given location.
         Based on the difference map, it calculates the change for each of the 9 regions and determine the change in each region.
         """
+        # Flip the matrix upside down to match the map orientation
+        data_var1 = data_var1.iloc[::-1]
+        data_var2 = data_var2.iloc[::-1]
+
         # Divide the data into regions
         regions_var1 = divide_into_regions(data_var1)
         regions_var2 = divide_into_regions(data_var2)
@@ -448,6 +468,10 @@ def oracle_codes(ppocr, llm, template, data_var1, overlay1, overlay_path1, locat
         It first normalizes the data, computes the difference table, divides the data into regions, and calculates the correlation for each region.
         It identifies the overall trend, the region with the highest correlation, and the region with the highest spatial variation in correlations. 
         """
+        # Flip the matrix upside down to match the map orientation
+        data_var1 = data_var1.iloc[::-1]
+        data_var2 = data_var2.iloc[::-1]
+
         # Normalize the data
         norm_var1 = (data_var1 - data_var1.mean()) / data_var1.std()
         norm_var2 = (data_var2 - data_var2.mean()) / data_var2.std()

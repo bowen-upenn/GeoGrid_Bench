@@ -175,6 +175,7 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     # Retrieve the data from the database using the crossmodel indices
     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
     data = data[time_period].values
+
     if verbose:
         print(data)
     return data, crossmodel_indices, latlong, data_df, time_period, cell_geometries

@@ -78,6 +78,11 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
     grid_width /= count_grid
     grid_height /= count_grid
 
+    global_min_col = min([extract_col_id(col) for col in smallest_column_per_row.values()])
+    global_min_row = min([extract_row_id(row) for row in smallest_column_per_row.keys()])
+    num_rows = len(smallest_column_per_row)
+    num_cols = len(largest_row_per_column)
+
     for index, row in data_df_geo.iterrows():  # Assuming data_df_geo contains the geometries
         geometry = row['geometry']
         if geometry.is_empty:
@@ -102,14 +107,11 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
             ).add_to(m)
 
         # Show all columns in the bottom-most non-NaN rows
-        global_min_col = min([extract_col_id(col) for col in smallest_column_per_row.values()])
-        global_min_row = min([extract_row_id(row) for row in smallest_column_per_row.keys()])
-
         if row_label == largest_row_per_column[col_label]:
             # if it is the leftmost column, always print the column number at the top, avoiding overlapping with the row number
             if extract_row_id(col_label) == global_min_col:
                 which_row = extract_row_id(row_label) - global_min_row
-                if which_row > 3:   # would cause too much shifts
+                if which_row > 1:   # would cause too much shifts or overlaps
                     continue
                 else:
                     folium.Marker(
