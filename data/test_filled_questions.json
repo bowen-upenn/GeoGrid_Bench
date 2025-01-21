@@ -9,11 +9,11 @@
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
-        "question": "Which region in the Chicago, IL experienced the largest spatial variation in fire weather index during autumn in historical period?",
+        "question": "Which region in the Chicago, IL experienced the largest spatial variation in heating degree in historical period?",
         "filled_values": {
-            "climate_variable1": "fire weather index",
+            "climate_variable1": "heating degree",
             "location1": "Chicago, IL",
-            "time_frame1": "autumn in historical period"
+            "time_frame1": "historical period"
         },
         "template": "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?"
     },

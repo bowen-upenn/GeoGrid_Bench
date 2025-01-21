@@ -19,7 +19,7 @@ def find_row_col_boxes(ocr_results):
     return row_col_indices
 
 
-def find_heatmap_region(ocr_results):
+def find_heatmap_region(ocr_results, angle):
     # Extract bounding box coordinates for rows (Rxxx) and columns (Cxxx)
     row_col_indices = find_row_col_boxes(ocr_results)
     row_boxes = [entry[0] for entry in row_col_indices if entry[1][0].startswith('R')]
@@ -38,28 +38,54 @@ def find_heatmap_region(ocr_results):
     #     [rightmost_col, lowermost_row],  # Bottom-right
     #     [leftmost_col, lowermost_row],  # Bottom-left
     # ]
-    # Step 1: Top-left remains the same
-    top_left = [leftmost_col, uppermost_row]
 
-    # Step 2: Calculate the top-right
-    angle_10_deg = math.radians(10)
-    top_right = [
-        rightmost_col,
-        uppermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
-    ]
+    if angle > 0:
+        # Step 1: Top-left remains the same
+        top_left = [leftmost_col, uppermost_row]
 
-    # Step 3: Calculate the lower-left
-    angle_80_deg = math.radians(80)
-    lower_left = [
-        leftmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
-        lowermost_row
-    ]
+        # Step 2: Calculate the top-right
+        angle_10_deg = math.radians(angle)
+        top_right = [
+            rightmost_col,
+            uppermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
+        ]
 
-    # Step 4: Calculate the lower-right
-    lower_right = [
-        rightmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
-        lowermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
-    ]
+        # Step 3: Calculate the lower-left
+        angle_80_deg = math.radians(90-angle)
+        lower_left = [
+            leftmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
+            lowermost_row
+        ]
+
+        # Step 4: Calculate the lower-right
+        lower_right = [
+            rightmost_col + (lowermost_row - uppermost_row) / math.tan(angle_80_deg),
+            lowermost_row - (rightmost_col - leftmost_col) * math.tan(angle_10_deg)
+        ]
+    else:
+        angle = -angle
+        # Step 1: Top-left remains the same
+        top_left = [leftmost_col, uppermost_row]
+
+        # Step 2: Calculate the top-right
+        angle_deg = math.radians(angle)
+        top_right = [
+            rightmost_col,
+            uppermost_row + (rightmost_col - leftmost_col) * math.tan(angle_deg)
+        ]
+
+        # Step 3: Calculate the lower-left
+        angle_deg = math.radians(90 - angle)
+        lower_left = [
+            leftmost_col - (lowermost_row - uppermost_row) / math.tan(angle_deg),
+            lowermost_row
+        ]
+
+        # Step 4: Calculate the lower-right
+        lower_right = [
+            rightmost_col - (lowermost_row - uppermost_row) / math.tan(angle_deg),
+            lowermost_row + (rightmost_col - leftmost_col) * math.tan(angle_deg)
+        ]
 
     # Construct the rectangle
     heatmap_rect = [top_left, top_right, lower_right, lower_left]
@@ -308,6 +334,7 @@ class OCR:
     def __init__(self):
         self.ocr = PaddleOCR(lang='en', show_log=False)  # need to run only once to download and load model into memory
 
+
     def draw_result(self, img_path, result):
         result = result[0]
         image = Image.open(img_path).convert('RGB')
@@ -319,10 +346,68 @@ class OCR:
         im_show = Image.fromarray(im_show)
         im_show.save('ocr_result.jpg')
 
-    def run_ocr_detection(self, img_path, verbose=False):
+
+    def merge_split_lines(self, result):
+        """
+        Merge lines in the OCR result that belong to the same text but are split into two.
+        """
+        merged_result = []
+        used_indices = set()
+        max_gap = 10  # Maximum allowed horizontal misalignment
+        max_height_gap = 10  # Maximum vertical gap to consider two boxes as adjacent
+
+        for i, line1 in enumerate(result):
+            if i in used_indices:
+                continue
+
+            merged_box, merged_text, merged_score = line1[0], line1[1][0], line1[1][1]
+
+            for j, line2 in enumerate(result[i + 1:], start=i + 1):
+                if j in used_indices:
+                    continue
+
+                # Get bounding box coordinates for line1 and line2
+                line1_top = line1[0][0][1]
+                line1_bottom = line1[0][2][1]
+                line2_top = line2[0][0][1]
+                line2_bottom = line2[0][2][1]
+
+                # Check horizontal alignment: centers should align within a tolerance
+                line1_center_x = (line1[0][0][0] + line1[0][1][0]) / 2
+                line2_center_x = (line2[0][0][0] + line2[0][1][0]) / 2
+
+                horizontal_aligned = abs(line1_center_x - line2_center_x) < max_gap
+
+                # Check vertical adjacency: one line must be directly below the other
+                vertical_aligned = abs(line2_top - line1_bottom) < max_height_gap
+
+                if horizontal_aligned and vertical_aligned:
+                    # Merge bounding boxes
+                    x_min = min(merged_box[0][0], line2[0][0][0])
+                    y_min = min(merged_box[0][1], line2[0][0][1])
+                    x_max = max(merged_box[2][0], line2[0][2][0])
+                    y_max = max(merged_box[2][1], line2[0][2][1])
+                    merged_box = [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
+
+                    # Merge texts
+                    merged_text += f" {line2[1][0]}"
+                    print(f"Merged {line1[1][0]} and {line2[1][0]}")
+
+                    # Average scores
+                    merged_score = (merged_score + line2[1][1]) / 2
+
+                    used_indices.add(j)
+
+            merged_result.append([merged_box, (merged_text, merged_score)])
+            used_indices.add(i)
+
+        return merged_result
+
+
+    def run_ocr_detection(self, img_path, angle, verbose=False):
         result = self.ocr.ocr(img_path, cls=False)
         self.draw_result(img_path, result)
-        heatmap_rect = find_heatmap_region(result[0])
+        heatmap_rect = find_heatmap_region(result[0], angle)
 
         invaild_lines = []
         invalid_names = []
@@ -338,6 +423,7 @@ class OCR:
                 invalid_names.append(result[idx][line_idx][1][0])
                 del result[idx][line_idx]
 
+        result[0] = self.merge_split_lines(result[0])
         names_in_regions = divide_heatmap_into_regions(heatmap_rect, result[0])
 
         if verbose:

@@ -8,7 +8,7 @@ import utils
 
 
 visual_qa_mode = {"Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?": 'block',
-                  "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?" : 'block',
+                  "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?": None,
                   "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?": 'block',
                   "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?": 'region',
                   "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?": None,
@@ -24,7 +24,7 @@ class TemplateQuestionManager:
         self.questions = {
             "basic": [
                 "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?",
-                "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?",
+                "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?",
                 "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?",
                 "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?",
                 "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?",

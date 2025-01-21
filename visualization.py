@@ -7,6 +7,8 @@ from time import sleep
 import requests
 import json
 import ast
+import math
+import cv2
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, TwoSlopeNorm
@@ -25,6 +27,42 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
 import ocr
+
+
+def find_grid_angle(image):
+    image = np.array(image)
+    distance_to_black = np.linalg.norm(image - np.array([0, 0, 0]), axis=-1)
+    grid_mask = distance_to_black <= 80
+    filtered_image = np.zeros_like(image)
+    filtered_image[grid_mask] = np.array([255, 255, 255])
+    cv2.imwrite('filtered_image.jpg', filtered_image)
+
+    grey = cv2.cvtColor(filtered_image, cv2.COLOR_BGR2GRAY)
+    edge = cv2.Canny(grey, 50, 150, apertureSize=7)
+    kernel = np.ones((5, 5), np.uint8)
+    edge = cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel)
+    lines = cv2.HoughLines(edge, 1, np.pi / 180, 200)  # Adjust the threshold value (200) as needed
+    cv2.imwrite('edge.jpg', edge)
+
+    angles = []
+    horizontal_lines = []
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            angle = np.degrees(theta)  # Convert theta to degrees
+
+            # Filter for horizontal lines (angles near 0° or 180°)
+            if abs(angle) < 45 or abs(angle - 180) < 45:
+                horizontal_lines.append((rho, theta))
+                angles.append(angle)
+
+    angle = np.median(angles)
+    if angle < 90:
+        angle = -angle
+    else:
+        angle = 180 - angle
+    print("Detected line angle:", angle)
+
+    return angle
 
 
 def add_crossmodel_indices_on_map(data_df_geo, m):
@@ -56,7 +94,7 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
             largest_row_per_column[col] = row
 
     # grid shapes may vary based on the map, especially along ocean coasts or national boarders, so we calculate the average grid size
-    grid_width, grid_height = 0, 0
+    grid_width, grid_height = [], []
     count_grid = 0
     for index, row in data_df_geo.iterrows():  # Assuming data_df_geo contains the geometries
         geometry = row['geometry']
@@ -70,13 +108,12 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
                 lon, lat = transformer.transform(point[0], point[1])
                 all_lon.append(lon)
                 all_lat.append(lat)
-            grid_width += max(all_lon) - min(all_lon)
-            grid_height += max(all_lat) - min(all_lat)
-            count_grid += 1
+            grid_width.append(max(all_lon) - min(all_lon))
+            grid_height.append(max(all_lat) - min(all_lat))
         except Exception as e:
             continue
-    grid_width /= count_grid
-    grid_height /= count_grid
+    grid_width = np.median(grid_width)
+    grid_height = np.median(grid_height)
 
     global_min_col = min([extract_col_id(col) for col in smallest_column_per_row.values()])
     global_min_row = min([extract_row_id(row) for row in smallest_column_per_row.keys()])
@@ -144,10 +181,21 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
     )
 
     # Remove any other duplicated columns
-    if 'hist_x' in data_df_geo.columns and 'hist_y' in data_df_geo.columns:
-        data_df_geo['hist'] = data_df_geo['hist_x']  # Or choose 'hist_y'
-        data_df_geo.drop(columns=['hist_x', 'hist_y'], inplace=True)
+    x_columns = [col for col in data_df_geo.columns if col.endswith('_x')]
+    for x_col in x_columns:
+        base_col = x_col[:-2]  # Remove the '_x' suffix to get the base name
+        y_col = f"{base_col}_y"
+
+        data_df_geo[base_col] = data_df_geo[x_col]  # Or data_df_geo[y_col] if preferred
+        data_df_geo.drop(columns=[x_col], inplace=True)
+        if y_col in data_df_geo.columns:
+            data_df_geo.drop(columns=[y_col], inplace=True)
     data_df_geo = data_df_geo.loc[:, ~data_df_geo.columns.duplicated()]
+    # print('data_df_geo.columns', data_df_geo.columns)
+    # if 'hist_x' in data_df_geo.columns and 'hist_y' in data_df_geo.columns:
+    #     data_df_geo['hist'] = data_df_geo['hist_x']  # Or choose 'hist_y'
+    #     data_df_geo.drop(columns=['hist_x', 'hist_y'], inplace=True)
+    # data_df_geo = data_df_geo.loc[:, ~data_df_geo.columns.duplicated()]
 
     # Check if required fields exist
     required_fields = ['Crossmodel', col_name, 'geometry']
@@ -178,7 +226,7 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
             style_function=lambda feature: {
                 'fillColor': feature['properties']['color'],
                 'color': 'black',  # border color
-                'weight': 0.5,
+                'weight': 0.8,
                 'fillOpacity': 0.5,
             },
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name]),
@@ -210,12 +258,13 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
     sleep(3)  # Wait for map to load
     driver.save_screenshot(output_path)
     screenshot = Image.open(output_path)
+    angle = find_grid_angle(screenshot)
     width, height = screenshot.size
     if verbose:
         print(f"Map saved as image: {output_path} with size {width}x{height} pixels")
     driver.quit()
 
-    return screenshot, width, height
+    return screenshot, width, height, angle
 
 
 def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", verbose=False):
@@ -269,6 +318,6 @@ def visualize_grids(data_df, matrix, variable_name, time_period, cell_geometries
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
+    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
 
-    return heatmap, overlay, overlay_path, overlay_width, overlay_height
+    return heatmap, overlay, overlay_path, overlay_width, overlay_height, angle

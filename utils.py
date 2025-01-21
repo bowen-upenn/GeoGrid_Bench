@@ -5,6 +5,7 @@ import argparse
 import random
 from PIL import Image
 import json
+import difflib
 
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
@@ -446,6 +447,30 @@ def filter_names(llm, names, curr_city):
     except:
         names_filtered = names
     return names_filtered
+
+
+def match_tolerant_sets(source_set, target_set, threshold=0.8):
+    """
+    Matches items between two sets with tolerance for typos using difflib.
+
+    Args:
+        source_set (list): List of source names to be matched.
+        target_set (list): List of target names to match against.
+        threshold (float): Similarity threshold (0 to 1) for a match.
+
+    Returns:
+        list: List of matched names.
+    """
+    matched_names = []
+    for target in target_set:
+        # Filter source set by word count
+        source_with_same_word_count = [name for name in source_set if len(name.split()) == len(target.split())]
+
+        # Find the closest match among candidates with matching word count
+        closest_match = difflib.get_close_matches(target, source_with_same_word_count, n=1, cutoff=threshold)
+        if closest_match:
+            matched_names.append(closest_match[0])
+    return matched_names
 
 
 def print_qa(qa):
