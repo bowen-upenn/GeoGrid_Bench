@@ -603,13 +603,17 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
                 else:
                     trends.append("remains constant")
 
+            # Reverse order to start from winter -> spring
+            seasons = seasons[::-1]
+            trends = trends[::-1]
+
             # Merge consecutive identical trends into groups
             merged_trends = []
             merged_seasons = [seasons[0]]  # Start with Winter
 
             for i in range(1, len(seasons)):
-                if trends[i - 1] == trends[i - 2] if i >= 2 else False:
-                    merged_seasons[-1] += f" -> {seasons[i]}"  # Merge into previous group
+                if i > 1 and trends[i - 1] == trends[i - 2]:
+                    merged_seasons[-1] = f"{seasons[i]} to {merged_seasons[-1]}"  # Merge into previous group
                 else:
                     merged_trends.append(trends[i - 1])
                     merged_seasons.append(seasons[i])
@@ -629,17 +633,24 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
                 trends[:1] + trends[2:3] + [trends[1]]  # Swap middle trends
             ]
 
-            for trend_variation in incorrect_trend_variations:
-                merged_trends_alt = []
-                merged_seasons_alt = [seasons[0]]
+            # Reverse seasons to start from winter to spring
+            seasons_reversed = seasons[::-1]
 
-                for i in range(1, len(seasons)):
-                    if trend_variation[i - 1] == trend_variation[i - 2] if i >= 2 else False:
-                        merged_seasons_alt[-1] += f" → {seasons[i]}"  # Merge into previous group
+            for trend_variation in incorrect_trend_variations:
+                # Reverse trend variation to match the reversed seasons
+                trend_variation = trend_variation[::-1]
+
+                merged_trends_alt = []
+                merged_seasons_alt = [seasons_reversed[0]]  # Start with Winter
+
+                for i in range(1, len(seasons_reversed)):
+                    if i > 1 and trend_variation[i - 1] == trend_variation[i - 2]:
+                        merged_seasons_alt[-1] = f"{seasons_reversed[i]} to {merged_seasons_alt[-1]}"  # Merge into previous group
                     else:
                         merged_trends_alt.append(trend_variation[i - 1])
-                        merged_seasons_alt.append(seasons[i])
+                        merged_seasons_alt.append(seasons_reversed[i])
 
+                # Construct trend description
                 trend_description_alt = ", then ".join(
                     f"from {merged_seasons_alt[i]} the variable {merged_trends_alt[i]}"
                     for i in range(len(merged_trends_alt))
