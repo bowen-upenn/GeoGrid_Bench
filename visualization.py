@@ -168,7 +168,7 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
     return m
 
 
-def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
+def overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap_map.png", verbose=False):
     # Extract required columns
     variable_columns = [col for col in data_df.columns if time_period == col]
     variable_df = data_df[['Crossmodel'] + variable_columns]
@@ -260,14 +260,29 @@ def overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geo
     screenshot = Image.open(output_path)
     angle = find_grid_angle(screenshot)
     width, height = screenshot.size
+
+    # Add title
+    title_height = 30  # Space for title
+    new_image = Image.new("RGB", (width, height + title_height), "white")
+    new_image.paste(screenshot, (0, title_height))
+    draw = ImageDraw.Draw(new_image)
+    font = ImageFont.truetype("Arial_Black.ttf", 20)
+    text_bbox = draw.textbbox((0, 0), title, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    text_x = (width - text_width) // 2
+    text_y = 0  # Padding from top
+    draw.text((text_x, text_y), title, fill=(0, 0, 0), font=font)
+    new_image.save(output_path)  # Overwrite the original image**
+
     if verbose:
         print(f"Map saved as image: {output_path} with size {width}x{height} pixels")
     driver.quit()
 
-    return screenshot, width, height, angle
+    return new_image, width, height, angle
 
 
-def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", verbose=False):
+def visualize_heatmap(matrix, title, color_norm, output_path="heatmap", verbose=False):
     # Flip the matrix upside down to match the map orientation
     matrix = matrix.iloc[::-1]
 
@@ -297,7 +312,7 @@ def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", 
     cbar.set_label('Values', fontsize=12)
 
     # Save and display the heatmap with indices
-    plt.title(variable_name.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
+    plt.title(title.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig(output_path, bbox_inches='tight')
     plt.show()
@@ -309,15 +324,15 @@ def visualize_heatmap(matrix, variable_name, color_norm, output_path="heatmap", 
 
 
 
-def visualize_grids(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
+def visualize_grids(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, variable_name, color_norm, output_path=f"{output_path}.png", verbose=verbose)
+    heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=f"{output_path}.png", verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, variable_name, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
+    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height, angle

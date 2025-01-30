@@ -292,6 +292,14 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                     if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
                         break
 
+                    if 'season' in question or 'seasonal' in question:
+                        if time_frame.split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
+                            continue
+                        elif time_frame.split('-')[0] == 'spring':  # keep only one here, because one question already actually covers all four seasons
+                            time_frame = ' '.join(name.split()[2:])
+                        else:
+                            continue
+
                     filled_values['time_frame1'] = time_frame
                     time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in time_frame else 'RCP8.5' if 'RCP8.5' in time_frame else None
 
@@ -383,8 +391,18 @@ def generate_one_for_each_template(cmd_args, template_question_manager, location
                     done = False
                     while not done:
                         filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
+                        if 'season' in question or 'seasonal' in question:
+                            if filled_values['time_frame1'].split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
+                                done = False
+                                continue
+                            filled_values['time_frame1'] = ' '.join(filled_values['time_frame1'].split()[2:])
+
                         if 'climate_variable2' in filled_values:
                             if filled_values['time_frame1'] in template_question_manager.full_time_frames[filled_values['climate_variable2']]:
+                                if 'season' in question or 'seasonal' in question:
+                                    if filled_values['time_frame1'].split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
+                                        done = False
+                                        continue
                                 done = True
                             else:
                                 done = False

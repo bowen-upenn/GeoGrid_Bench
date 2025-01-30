@@ -476,6 +476,8 @@ def match_tolerant_sets(source_set, target_set, threshold=0.8):
 def print_qa(qa):
     question, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
+    data_var3 = qa['data_var3'] if 'data_var3' in qa else None
+    data_var4 = qa['data_var4'] if 'data_var4' in qa else None
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -491,6 +493,12 @@ def print_qa(qa):
     if data_var2 is not None:
         print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
         print(data_var2)
+    if data_var3 is not None:
+        print(f'{Colors.OKGREEN}Data 3:{Colors.ENDC}')
+        print(data_var3)
+    if data_var4 is not None:
+        print(f'{Colors.OKGREEN}Data 4:{Colors.ENDC}')
+        print(data_var4)
 
     print(f'{Colors.OKGREEN}Correct answers:{Colors.ENDC}')
     print(json.dumps(correct_answer, indent=4))

@@ -1,9 +1,9 @@
 [
     {
-        "question": "Which region in the San Jose, CA experienced the largest increase in cooling degree days during historical period?",
+        "question": "Which region in the Chicago, IL experienced the largest increase in cooling degree days during historical period?",
         "filled_values": {
             "climate_variable1": "cooling degree days",
-            "location1": "San Jose, CA",
+            "location1": "Chicago, IL",
             "time_frame1": "historical period"
         },
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
@@ -38,20 +38,20 @@
         "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
     },
     {
-        "question": "What is the seasonal variation of number of days with daily heat index above 105 F in Durham, NC during summer in mid-century period?",
+        "question": "What is the seasonal variation of fire weather index in Urbana, IL during mid-century period?",
         "filled_values": {
-            "climate_variable1": "number of days with daily heat index above 105 F",
-            "location1": "Durham, NC",
-            "time_frame1": "summer in mid-century period"
+            "climate_variable1": "fire weather index",
+            "location1": "Urbana, IL",
+            "time_frame1": "mid-century period"
         },
         "template": "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?"
     },
     {
-        "question": "Which season in summer in end-century period saw the highest levels of maximum seasonal heat index in El Paso, TX?",
+        "question": "Which season in end-century period saw the highest levels of maximum seasonal heat index in El Paso, TX?",
         "filled_values": {
             "climate_variable1": "maximum seasonal heat index",
             "location1": "El Paso, TX",
-            "time_frame1": "summer in end-century period"
+            "time_frame1": "end-century period"
         },
         "template": "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?"
     },
@@ -76,12 +76,12 @@
         "template": "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1}?"
     },
     {
-        "question": "How does the seasonal variation of number of days with daily heat index above 95 F in Honolulu, HI compare to that in Garland, TX for summer in historical period?",
+        "question": "How does the seasonal variation of number of days with daily heat index above 95 F in Honolulu, HI compare to that in Garland, TX for historical period?",
         "filled_values": {
             "climate_variable1": "number of days with daily heat index above 95 F",
             "location1": "Honolulu, HI",
             "location2": "Garland, TX",
-            "time_frame1": "summer in historical period"
+            "time_frame1": "historical period"
         },
         "template": "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?"
     }

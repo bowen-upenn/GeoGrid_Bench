@@ -2,4 +2,6 @@ myenv/
 __pycache__/
 openai_key.txt
 data/climrr/
-temp_map.html
+*.html
+edge.jpg
+filtered_image.jpg

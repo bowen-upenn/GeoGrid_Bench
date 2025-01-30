@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from esda.moran import Moran
 from libpysal.weights import lat2W
+import random
 
 import ocr
 from templates import visual_qa_mode
@@ -97,7 +98,7 @@ def extract_place_names(ppocr, llm, template, correct_region, angle1, overlay1, 
         red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
 
         # find the intersection between names in the correct region and names in the red_set
-        print('red_set', red_set, "names_in_regions[correct_region]", names_in_regions[correct_region])
+        print('red_set', red_set, "correct_region", correct_region, "names_in_regions", names_in_regions)
         red_set = utils.match_tolerant_sets(red_set, names_in_regions[correct_region])
         print('matched red set', red_set)
         # red_set = list(set(names_in_regions[correct_region]) & set(red_set))
@@ -174,7 +175,7 @@ def sample_row_col_indices_from_region(regions, target_region, k=3, incorrect=Fa
     return sampled_indices
 
 
-def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path1, location_description1, data_var2=None, angle2=None, overlay2=None, overlay_path2=None, location_description2=None, verbose=False):
+def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path1, location_description1, data_var2=None, data_var3=None, data_var4=None, angle2=None, overlay2=None, overlay_path2=None, location_description2=None, verbose=False):
     if template == "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?":
         """
         The oracle code first divides the data into 9 regions and calculates the average value for each region.
@@ -192,39 +193,40 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
                 region_averages[name] = region_df.mean().mean()
 
         # Identify the region with the highest average value
-        max_region_num = max(region_averages, key=lambda k: (region_averages[k] if not np.isnan(region_averages[k]) else -np.inf))
-        other_regions_num = [region for region in region_averages.keys() if region != max_region_num]
-        other_regions_num = np.random.choice(other_regions_num, 3)
-        correct_place_names_num, incorrect_place_names_num = extract_place_names(ppocr, llm, template, max_region_num, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        max_region = max(region_averages, key=lambda k: (region_averages[k] if not np.isnan(region_averages[k]) else -np.inf))
+        print('max_region', max_region)
+        other_regions = [region for region in region_averages.keys() if region != max_region]
+        other_regions = np.random.choice(other_regions, 3)
+        correct_place_names, incorrect_place_names = extract_place_names(ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
-        top_k_indices_correct_num = sample_row_col_indices_from_region(regions, max_region_num, k=2, incorrect=False)
-        top_k_indices_incorrect_num = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_num]
+        top_k_indices_correct = sample_row_col_indices_from_region(regions, max_region, k=2, incorrect=False)
+        top_k_indices_incorrect = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions]
 
         correct_answer = {
             'location': {
-                'region': f"The region around {max_region_num} experienced the largest increase.",
-                'indices': f"The region around blocks {top_k_indices_correct_num} experienced the largest increase.",
-                'places': f"The region around the textual marks {correct_place_names_num} on the map experienced the largest increase." if correct_place_names_num is not None else None,
+                'region': f"The region around {max_region} experienced the largest increase.",
+                'indices': f"The region around blocks {top_k_indices_correct} experienced the largest increase.",
+                'places': f"The region around the textual marks {correct_place_names} on the map experienced the largest increase." if correct_place_names is not None else None,
             },
         }
         incorrect_answers = {
             'location': {
                 'region': [
-                    f"The region around {other_regions_num[0]} experienced the largest increase.",
-                    f"The region around {other_regions_num[1]} experienced the largest increase.",
-                    f"The region around {other_regions_num[2]} experienced the largest increase.",
+                    f"The region around {other_regions[0]} experienced the largest increase.",
+                    f"The region around {other_regions[1]} experienced the largest increase.",
+                    f"The region around {other_regions[2]} experienced the largest increase.",
                 ],
                 'indices': [
-                    f"The region around blocks {top_k_indices_incorrect_num[0]} experienced the largest increase.",
-                    f"The region around blocks {top_k_indices_incorrect_num[1]} experienced the largest increase.",
-                    f"The region around blocks {top_k_indices_incorrect_num[2]} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect[0]} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect[1]} experienced the largest increase.",
+                    f"The region around blocks {top_k_indices_incorrect[2]} experienced the largest increase.",
                 ],
                 'places': [
-                    f"The region around the textual marks {incorrect_place_names_num[0]} on the map experienced the largest increase.",
-                    f"The region around the textual marks {incorrect_place_names_num[1]} on the map experienced the largest increase.",
-                    f"The region around the textual marks {incorrect_place_names_num[2]} on the map experienced the largest increase.",
-                ] if incorrect_place_names_num is not None else None,
+                    f"The region around the textual marks {incorrect_place_names[0]} on the map experienced the largest increase.",
+                    f"The region around the textual marks {incorrect_place_names[1]} on the map experienced the largest increase.",
+                    f"The region around the textual marks {incorrect_place_names[2]} on the map experienced the largest increase.",
+                ] if incorrect_place_names is not None else None,
             },
         }
         return correct_answer, incorrect_answers
@@ -469,17 +471,17 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
         negative_count = sum(1 for r in region_results if r["correlation"] < 0)
 
         # Analyze detailed locations
-        max_region_num = max(region_results, key=lambda x: abs(x["correlation"]))
-        max_region_trend = "positive" if max_region_num['correlation'] > 0 else "negative"
-        max_region_value = max_region_num['correlation']
-        max_region_num = max_region_num["region"]
-        other_regions_num = [r["region"] for r in region_results if r["region"] != max_region_num]
-        other_regions_num = np.random.choice(other_regions_num, 3)
-        correct_place_names_num, incorrect_place_names_num = extract_place_names(ppocr, llm, template, max_region_num, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        max_region = max(region_results, key=lambda x: abs(x["correlation"]))
+        max_region_trend = "positive" if max_region['correlation'] > 0 else "negative"
+        max_region_value = max_region['correlation']
+        max_region = max_region["region"]
+        other_regions = [r["region"] for r in region_results if r["region"] != max_region]
+        other_regions = np.random.choice(other_regions, 3)
+        correct_place_names, incorrect_place_names = extract_place_names(ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
-        top_k_indices_correct_num = sample_row_col_indices_from_region(regions_diff, max_region_num, k=2, incorrect=False)
-        top_k_indices_incorrect_num = [sample_row_col_indices_from_region(regions_diff, region, k=2, incorrect=True) for region in other_regions_num]
+        top_k_indices_correct = sample_row_col_indices_from_region(regions_diff, max_region, k=2, incorrect=False)
+        top_k_indices_incorrect = [sample_row_col_indices_from_region(regions_diff, region, k=2, incorrect=True) for region in other_regions]
 
         if verbose:
             print('positive_count', positive_count, 'negative_count', negative_count, 'max_region_value', max_region_value)
@@ -504,21 +506,21 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
 
         correct_answer = {
             'trend': {
-                'region': f"Overall {correct_trend} correlation.",
+                'region': f"Overall {correct_trend}.",
             }
         }
         if correct_trend != "no significant":
             correct_answer.update({
                 'location': {
-                    'region': f"The region around {max_region_num} has the largest {max_region_trend} correlation.",
-                    'indices': f"The region around blocks {top_k_indices_correct_num} has the largest {max_region_trend} correlation.",
-                    'places': f"The region around the textual marks {correct_place_names_num} on the map has the largest {max_region_trend} correlation." if correct_place_names_num is not None else None
+                    'region': f"The region around {max_region} has the largest {max_region_trend} correlation.",
+                    'indices': f"The region around blocks {top_k_indices_correct} has the largest {max_region_trend} correlation.",
+                    'places': f"The region around the textual marks {correct_place_names} on the map has the largest {max_region_trend} correlation." if correct_place_names is not None else None
                 },
             })
             correct_answer['merge_two'] = {
                 'region': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['region'][1:],
                 'indices': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['indices'][1:],
-                'places': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['places'][1:] if correct_place_names_num is not None else None
+                'places': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['places'][1:] if correct_place_names is not None else None
             }
 
         incorrect_answers = {
@@ -534,33 +536,316 @@ def oracle_codes(ppocr, llm, template, data_var1, angle1, overlay1, overlay_path
             incorrect_answers.update({
                 'location': {
                     'region': [
-                        f"The region around {other_regions_num[0]} has the largest {max_region_trend} correlation.",
-                        f"The region around {other_regions_num[1]} has the largest {max_region_trend} correlation.",
-                        f"The region around {other_regions_num[2]} has the largest {max_region_trend} correlation.",
+                        f"The region around {other_regions[0]} has the largest {max_region_trend} correlation.",
+                        f"The region around {other_regions[1]} has the largest {max_region_trend} correlation.",
+                        f"The region around {other_regions[2]} has the largest {max_region_trend} correlation.",
                     ],
                     'indices': [
-                        f"The region around blocks {top_k_indices_incorrect_num[0]} has the largest {max_region_trend} correlation.",
-                        f"The region around blocks {top_k_indices_incorrect_num[1]} has the largest {max_region_trend} correlation.",
-                        f"The region around blocks {top_k_indices_incorrect_num[2]} has the largest {max_region_trend} correlation.",
+                        f"The region around blocks {top_k_indices_incorrect[0]} has the largest {max_region_trend} correlation.",
+                        f"The region around blocks {top_k_indices_incorrect[1]} has the largest {max_region_trend} correlation.",
+                        f"The region around blocks {top_k_indices_incorrect[2]} has the largest {max_region_trend} correlation.",
                     ],
                     'places': [
-                        f"The region around the textual marks {incorrect_place_names_num[0]} on the map has the largest {max_region_trend} correlation.",
-                        f"The region around the textual marks {incorrect_place_names_num[1]} on the map has the largest {max_region_trend} correlation.",
-                        f"The region around the textual marks {incorrect_place_names_num[2]} on the map has the largest {max_region_trend} correlation.",
-                    ] if incorrect_place_names_num is not None else None
+                        f"The region around the textual marks {incorrect_place_names[0]} on the map has the largest {max_region_trend} correlation.",
+                        f"The region around the textual marks {incorrect_place_names[1]} on the map has the largest {max_region_trend} correlation.",
+                        f"The region around the textual marks {incorrect_place_names[2]} on the map has the largest {max_region_trend} correlation.",
+                    ] if incorrect_place_names is not None else None
                 },
                 'merge_two': {'region': [], 'indices': [], 'places': []}
             })
             for i in range(3):
                 incorrect_answers['merge_two']['region'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['region'][i][1:])
                 incorrect_answers['merge_two']['indices'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['indices'][i][1:])
-                incorrect_answers['merge_two']['places'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['places'][i][1:] if correct_place_names_num is not None else None)
+                incorrect_answers['merge_two']['places'].append(incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['places'][i][1:] if correct_place_names is not None else None)
 
         return correct_answer, incorrect_answers
 
 
     elif template == "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?":
-        pass
+        """
+        This oracle code calculates the seasonal variation of a single climate variable
+        across four different data sets (e.g., representing four seasons or monthly subsets)
+        in a given location and time frame.
+
+        Steps:
+        1. Flip each data_var (1–4) upside down to match the map orientation.
+        2. Divide each of the four seasonal data sets into regions.
+        3. For each region:
+           - Compute the average value in each season.
+           - Compute the standard deviation across the four seasonal averages (to capture
+             how much the region varies from season to season).
+        4. Use that standard deviation to judge whether seasonal variation is low, moderate,
+           or high overall, and find which region has the highest variation.
+        5. For that highest-variation region, additionally describe the seasonal trend
+           (e.g., which season has the lowest average, which has the highest).
+        6. Prepare correct and incorrect answers accordingly, referencing location indices
+           and optional OCR-based place names on the map.
+        """
+
+        # Helper function to generate a short text describing seasonal trends
+        def describe_seasonal_trend(season_means):
+            """
+            Given a list of four seasonal means corresponding to Winter, Spring, Summer, and Fall,
+            return a short descriptive sentence about how the variable changes through the seasons.
+
+            season_means: [mean_winter, mean_spring, mean_summer, mean_fall].
+            """
+            # Define season names in order
+            seasons = ['spring', 'summer', 'autumn', 'winter']
+
+            # Determine trend (increase or decrease) between consecutive seasons
+            trends = []
+            for i in range(3):  # Compare each season with the next one
+                if season_means[i + 1] > season_means[i]:
+                    trends.append("increases")
+                elif season_means[i + 1] < season_means[i]:
+                    trends.append("decreases")
+                else:
+                    trends.append("remains constant")
+
+            # Merge consecutive identical trends into groups
+            merged_trends = []
+            merged_seasons = [seasons[0]]  # Start with Winter
+
+            for i in range(1, len(seasons)):
+                if trends[i - 1] == trends[i - 2] if i >= 2 else False:
+                    merged_seasons[-1] += f" -> {seasons[i]}"  # Merge into previous group
+                else:
+                    merged_trends.append(trends[i - 1])
+                    merged_seasons.append(seasons[i])
+
+            # Construct trend description
+            trend_description = ", then ".join(
+                f"from {merged_seasons[i]} the variable {merged_trends[i]}"
+                for i in range(len(merged_trends))
+            ) + "."
+            correct_trend_description = f"Throughout the year, {trend_description} "
+
+            # Generate incorrect trend descriptions by modifying the correct trend
+            incorrect_trends = []
+            incorrect_trend_variations = [
+                trends[::-1],  # Reverse the trends
+                [random.choice(["increases", "decreases", "remains constant"]) for _ in trends],  # Random trends
+                trends[:1] + trends[2:3] + [trends[1]]  # Swap middle trends
+            ]
+
+            for trend_variation in incorrect_trend_variations:
+                merged_trends_alt = []
+                merged_seasons_alt = [seasons[0]]
+
+                for i in range(1, len(seasons)):
+                    if trend_variation[i - 1] == trend_variation[i - 2] if i >= 2 else False:
+                        merged_seasons_alt[-1] += f" → {seasons[i]}"  # Merge into previous group
+                    else:
+                        merged_trends_alt.append(trend_variation[i - 1])
+                        merged_seasons_alt.append(seasons[i])
+
+                trend_description_alt = ", then ".join(
+                    f"from {merged_seasons_alt[i]} the variable {merged_trends_alt[i]}"
+                    for i in range(len(merged_trends_alt))
+                ) + "."
+
+                incorrect_trends.append(trend_description_alt)
+
+            # Return formatted description including seasonal means
+            return correct_trend_description, incorrect_trends
+
+
+        # 1. Flip matrices to match orientation
+        data_var1 = data_var1.iloc[::-1]
+        data_var2 = data_var2.iloc[::-1]
+        data_var3 = data_var3.iloc[::-1]
+        data_var4 = data_var4.iloc[::-1]
+
+        # 2. Divide each of the four data sets into regions
+        regions_season1 = divide_into_regions(data_var1)
+        regions_season2 = divide_into_regions(data_var2)
+        regions_season3 = divide_into_regions(data_var3)
+        regions_season4 = divide_into_regions(data_var4)
+
+        region_results = []
+
+        # 3. For each region, compute seasonal means + standard deviation of those means
+        all_region_names = set(regions_season1.keys())  # They should match in principle
+        for region_name in all_region_names:
+            region_data1 = regions_season1[region_name].values.flatten()
+            region_data2 = regions_season2[region_name].values.flatten()
+            region_data3 = regions_season3[region_name].values.flatten()
+            region_data4 = regions_season4[region_name].values.flatten()
+
+            # Validity checks: require enough non-NaN data in each season
+            # to consider the region. You can adjust the threshold if desired.
+            valid_counts = [
+                np.sum(~np.isnan(region_data1)),
+                np.sum(~np.isnan(region_data2)),
+                np.sum(~np.isnan(region_data3)),
+                np.sum(~np.isnan(region_data4)),
+            ]
+            total_pixels = len(region_data1)  # same length in each season's region
+            # skip if fewer than 50% valid in *any* season
+            if any(vc / total_pixels <= 0.5 for vc in valid_counts):
+                continue
+
+            # Compute average for each season ignoring NaNs
+            mean_s1 = np.nanmean(region_data1)
+            mean_s2 = np.nanmean(region_data2)
+            mean_s3 = np.nanmean(region_data3)
+            mean_s4 = np.nanmean(region_data4)
+
+            season_means = [mean_s1, mean_s2, mean_s3, mean_s4]
+
+            # Compute standard deviation across these four means
+            stdev_across_seasons = np.nanstd(season_means)
+
+            region_results.append({
+                "region": region_name,
+                "season_means": season_means,
+                "avg_stdev": stdev_across_seasons
+            })
+
+        # If no valid regions, return an empty result
+        if not region_results:
+            return None, None
+
+        # 4. Analyze overall magnitude of seasonal variation
+        # Extract all stdev values
+        all_stdevs = [res["avg_stdev"] for res in region_results]
+        overall_mean_stdev = np.mean(all_stdevs)
+
+        # You can define thresholds to label the overall seasonal variation
+        if overall_mean_stdev < 0.3:
+            variation_level = "Overall, there is low seasonal variation. "
+            alt_variations = ["Overall, there is strong seasonal variation. ", "Overall, there is high seasonal variation. ", "Overall, there is almost no variation. "]
+        elif overall_mean_stdev > 0.7:
+            variation_level = "Overall, there is high seasonal variation. "
+            alt_variations = ["Overall, there is low seasonal variation. ", "Overall, there is little seasonal variation. ", "Overall, there is almost no variation. "]
+        else:
+            variation_level = ""    # Omit this part if the variation is moderate to make the correct answer less ambiguous
+            alt_variations = ["", "", ""]
+
+        # 5. Find the region with the highest stdev
+        max_region_entry = max(region_results, key=lambda x: x["avg_stdev"])
+        max_region = max_region_entry["region"]
+        max_value = max_region_entry["avg_stdev"]
+        max_region_season_means = max_region_entry["season_means"]
+
+        # Also pick 3 "other" regions for incorrect answers
+        other_regions = [r for r in region_results if r["region"] != max_region]
+        if len(other_regions) > 3:
+            other_regions = np.random.choice(other_regions, 3, replace=False)
+
+        # 6. Extract place names for the region with highest variation
+        correct_place_names, incorrect_place_names = extract_place_names(
+            ppocr, llm, template, max_region,
+            angle1, overlay1, overlay_path1, location_description1,
+            verbose=verbose
+        )
+
+        # Prepare sample indices
+        stacked = np.dstack((
+            data_var1.values,
+            data_var2.values,
+            data_var3.values,
+            data_var4.values
+        ))
+        stdev_map = np.nanstd(stacked, axis=2)
+        stdev_df = pd.DataFrame(stdev_map, index=data_var1.index, columns=data_var1.columns)
+        regions_stdev_df = divide_into_regions(stdev_df)
+
+        # Now sample
+        top_k_indices_correct = sample_row_col_indices_from_region(regions_stdev_df, max_region, k=2, incorrect=False)
+        top_k_indices_incorrect = []
+        for reg_info in other_regions:
+            reg_name = reg_info["region"]
+            top_k_indices_incorrect.append(
+                sample_row_col_indices_from_region(regions_stdev_df, reg_name, k=2, incorrect=True)
+            )
+
+        # Compute overall seasonal means across the entire map
+        overall_mean_winter = np.nanmean(data_var1.values)
+        overall_mean_spring = np.nanmean(data_var2.values)
+        overall_mean_summer = np.nanmean(data_var3.values)
+        overall_mean_fall = np.nanmean(data_var4.values)
+
+        # Create a list of global seasonal means
+        overall_season_means = [
+            overall_mean_winter,
+            overall_mean_spring,
+            overall_mean_summer,
+            overall_mean_fall
+        ]
+
+        # Compute the overall seasonal trend across the map
+        overall_season_trend, incorrect_season_trends = describe_seasonal_trend(overall_season_means)
+
+        # -- Prepare the correct answer --
+        correct_answer = {
+            'trend': {
+                'region': f"{variation_level}{overall_season_trend}",
+            },
+            'location': {
+                'region': f"The region around {max_region} has the largest seasonal variation ",
+                'indices': f"The region around blocks {top_k_indices_correct} has the highest seasonal variation.",
+                'places': f"The region around the textual marks {correct_place_names} on the map has the largest seasonal variation." if correct_place_names is not None else None
+            }
+        }
+        correct_answer['merge_two'] = {
+            'region': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['region'][1:],
+            'indices': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['indices'][1:],
+            'places': correct_answer['trend']['region'][:-1] + ' and t' + correct_answer['location']['places'][1:] if correct_place_names is not None else None
+        }
+
+        # -- Prepare the incorrect answers --
+        incorrect_answers = {
+            'trend': {
+                'region': [
+                    f"{alt_variations[0]}{incorrect_season_trends[0]}",
+                    f"{alt_variations[1]}{incorrect_season_trends[1]}",
+                    f"{alt_variations[2]}{incorrect_season_trends[2]}",
+                ]
+            },
+            'location': {
+                'region': [
+                    f"The region around {other_regions[0]['region']} has the largest seasonal variation.",
+                    f"The region around {other_regions[1]['region']} has the largest seasonal variation.",
+                    f"The region around {other_regions[2]['region']} has the largest seasonal variation.",
+                ],
+                'indices': [
+                    f"The region around blocks {top_k_indices_incorrect[0]} exhibits the highest seasonal variation."
+                    if len(top_k_indices_incorrect) > 0 else "No data for region indices.",
+                    f"The region around blocks {top_k_indices_incorrect[1]} exhibits the highest seasonal variation."
+                    if len(top_k_indices_incorrect) > 1 else "No data for region indices.",
+                    f"The region around blocks {top_k_indices_incorrect[2]} exhibits the highest seasonal variation."
+                    if len(top_k_indices_incorrect) > 2 else "No data for region indices.",
+                ],
+                'places': (
+                    [
+                        f"The region around the textual marks {incorrect_place_names[0]} on the map has the largest seasonal variation."
+                        if incorrect_place_names and len(incorrect_place_names) > 0 else None,
+                        f"The region around the textual marks {incorrect_place_names[1]} on the map has the largest seasonal variation."
+                        if incorrect_place_names and len(incorrect_place_names) > 1 else None,
+                        f"The region around the textual marks {incorrect_place_names[2]} on the map has the largest seasonal variation."
+                        if incorrect_place_names and len(incorrect_place_names) > 2 else None,
+                    ]
+                    if incorrect_place_names is not None else None
+                ),
+            },
+            'merge_two': {'region': [], 'indices': [], 'places': []}
+        }
+        for i in range(3):
+            region_merged = incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['region'][i][1:]
+            indices_merged = incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['indices'][i][1:]
+            if incorrect_answers['location']['places'] is not None and incorrect_answers['location']['places'][i] is not None:
+                places_merged = incorrect_answers['trend']['region'][i][:-1] + ' and t' + incorrect_answers['location']['places'][i][1:]
+            else:
+                places_merged = None
+
+            incorrect_answers['merge_two']['region'].append(region_merged)
+            incorrect_answers['merge_two']['indices'].append(indices_merged)
+            incorrect_answers['merge_two']['places'].append(places_merged)
+
+        return correct_answer, incorrect_answers
+
 
     elif template == "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?":
         pass
