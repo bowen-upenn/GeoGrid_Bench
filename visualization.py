@@ -324,15 +324,16 @@ def visualize_heatmap(matrix, title, color_norm, output_path="heatmap", verbose=
 
 
 
-def visualize_grids(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
+def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
     """
     Overlay a heatmap from a matrix onto a real map centered at the given latitude and longitude, and save as an image.
     """
     # Normalize the matrix for color mapping
-    heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=f"{output_path}.png", verbose=verbose)
+    heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=overlay_path, verbose=verbose)
+    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
+                                                        color_norm, center_lat, center_lon, size_km, alpha=True, output_path=os.path.join(question_dir, overlay_path), verbose=verbose)
 
     return heatmap, overlay, overlay_path, overlay_width, overlay_height, angle

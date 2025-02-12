@@ -231,6 +231,160 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
     """
     Iterate through all possible combinations of variables in each template question
     and generate formatted questions.
+    Additionally:
+      (1) The order of variable_combinations is randomly shuffled.
+      (2) Duplicate orderings of the same values (for variables of the same kind) are removed.
+      (3) Questions are grouped by template in a dictionary.
+      (4) Each template is limited to a maximum of 1000 questions.
+    """
+    # Set iterator for "basic" difficulty
+    iterator = template_question_manager.set_iterator(difficulty="basic")
+
+    # Dictionary to store questions grouped by template
+    template_questions = {}
+
+    for i, (question, variables) in enumerate(iterator):
+        if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
+            break
+
+        # Generate options for each variable as before
+        variable_options = {}
+        for variable in variables:
+            if variable == 'climate_variable1':
+                variable_options['climate_variable1'] = list(template_question_manager.climate_variables.keys())
+            elif variable == 'climate_variable2':
+                variable_options['climate_variable2'] = list(template_question_manager.climate_variables.keys())
+            elif variable == 'location1':
+                variable_options['location1'] = location_picker.get_all_locations(level=cmd_args.geoscale)
+            elif variable == 'location2':
+                variable_options['location2'] = variable_options['location1']
+            elif variable == 'time_frame1':
+                pass  # Handled later
+            elif variable == 'time_frame2':
+                pass  # Handled later
+            else:
+                raise ValueError(f"Variable not implemented: {variable}")
+
+        # Prepare list of variables that are not time frame related
+        non_time_vars = [var for var in variables if var not in ['time_frame1', 'time_frame2']]
+        # Generate all combinations of the non-time frame variables
+        variable_combinations = list(itertools.product(
+            *[variable_options[var] for var in non_time_vars]
+        ))
+
+        # Randomly shuffle the order of the combinations
+        random.shuffle(variable_combinations)
+
+        # Track unique variable combinations (avoiding order-dependent duplicates)
+        seen_combinations = set()
+        template_questions[question] = []
+
+        for combination in variable_combinations:
+            if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
+                break
+            if len(template_questions[question]) >= 1000:  # Limit to 1000 per template
+                break
+
+            # Reconstruct filled_values for non-time frame variables
+            filled_values = dict(zip(non_time_vars, combination))
+
+            # Sort values of interchangeable variables to avoid duplicates
+            for var1, var2 in [('climate_variable1', 'climate_variable2'), ('location1', 'location2')]:
+                if var1 in filled_values and var2 in filled_values:
+                    sorted_values = tuple(sorted([filled_values[var1], filled_values[var2]]))
+                    filled_values[var1], filled_values[var2] = sorted_values
+
+            # Check for duplicate variable combinations
+            frozen_combination = tuple(filled_values.items())
+            if frozen_combination in seen_combinations:
+                continue  # Skip duplicate orderings
+            seen_combinations.add(frozen_combination)
+
+            # Validate dependent variable constraints
+            if 'climate_variable2' in filled_values and filled_values['climate_variable2'] == filled_values['climate_variable1']:
+                continue  # Skip invalid combinations
+            if 'location2' in filled_values and filled_values['location2'] == filled_values['location1']:
+                continue  # Skip invalid combinations
+
+            # Process time frames if needed
+            if 'time_frame1' in variables:
+                climate_var = filled_values['climate_variable1']
+                allowed_time_frames = template_question_manager.allowed_time_frames[climate_var]
+                allowed_time_frames = list(allowed_time_frames.items())
+                random.shuffle(allowed_time_frames)
+                allowed_time_frames = dict(allowed_time_frames)
+
+                # Loop over allowed time frames for time_frame1
+                for time_frame in allowed_time_frames:
+                    if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
+                        break
+                    if len(template_questions[question]) >= 1000:
+                        break
+
+                    filled_values['time_frame1'] = time_frame
+                    time_frame1_rcp = (
+                        'RCP4.5' if 'RCP4.5' in time_frame
+                        else 'RCP8.5' if 'RCP8.5' in time_frame
+                        else None
+                    )
+
+                    # If a second time frame is required, process it
+                    if 'time_frame2' in variables:
+                        for time_frame2 in allowed_time_frames:
+                            if time_frame2 == filled_values['time_frame1']:
+                                continue
+                            # Avoid conflicting RCP scenarios
+                            if time_frame1_rcp == 'RCP4.5' and 'RCP8.5' in time_frame2:
+                                continue
+                            if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
+                                continue
+
+                            filled_values['time_frame2'] = time_frame2
+                            sorted_time_frames = tuple(sorted([filled_values['time_frame1'], filled_values['time_frame2']]))
+                            filled_values['time_frame1'], filled_values['time_frame2'] = sorted_time_frames
+
+                            frozen_combination = tuple(filled_values.items())
+                            if frozen_combination in seen_combinations:
+                                continue
+                            seen_combinations.add(frozen_combination)
+
+                            formatted_question = question.format(**filled_values)
+                            template_questions[question].append({
+                                'question': formatted_question,
+                                'filled_values': filled_values.copy()
+                            })
+                    else:
+                        formatted_question = question.format(**filled_values)
+                        template_questions[question].append({
+                            'question': formatted_question,
+                            'filled_values': filled_values.copy()
+                        })
+            else:
+                formatted_question = question.format(**filled_values)
+                template_questions[question].append({
+                    'question': formatted_question,
+                    'filled_values': filled_values.copy()
+                })
+
+        # Ensure no more than 1000 questions per template
+        template_questions[question] = template_questions[question][:1000]
+
+    # Save the data collections to a JSON file
+    with open('./data/all_filled_questions.json', 'w') as json_file:
+        json.dump(template_questions, json_file, indent=4)
+
+    for template, questions in template_questions.items():
+        print(f"Number of questions for template '{template}': {len(questions)}")
+    print('Questions generated and saved to all_filled_questions.json')
+
+    return template_questions
+
+
+def generate_one_for_each_template(cmd_args, template_question_manager, location_picker):
+    """
+    Iterate through all possible combinations of variables in each template question
+    and generate formatted questions. Now stops at the first valid example per template.
+    For seasonal questions, invalid time frames are filtered out before looping.
     """
     # Set iterator for "basic" difficulty
     iterator = template_question_manager.set_iterator(difficulty="basic")
@@ -240,44 +394,45 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
         if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
             break
 
-        # Generate all possible values for each variable
+        # Use a flag to track if we already found a valid example for this template
+        found_example = False
+
+        # Generate options for each variable as before
         variable_options = {}
         for variable in variables:
             if variable == 'climate_variable1':
                 variable_options['climate_variable1'] = list(template_question_manager.climate_variables.keys())
             elif variable == 'climate_variable2':
-                variable_options['climate_variable2'] = [
-                    var for var in template_question_manager.climate_variables.keys()
-                ]
+                variable_options['climate_variable2'] = list(template_question_manager.climate_variables.keys())
             elif variable == 'location1':
                 variable_options['location1'] = location_picker.get_all_locations(level=cmd_args.geoscale)
             elif variable == 'location2':
                 variable_options['location2'] = variable_options['location1']
             elif variable == 'time_frame1':
-                # Time frames depend on the selected climate_variable1
-                variable_options['time_frame1'] = [
-                    list(template_question_manager.allowed_time_frames[climate_var].keys())
-                    for climate_var in variable_options.get('climate_variable1', [])
-                ]
+                # We will use allowed_time_frames later based on the chosen climate_variable1.
+                pass
             elif variable == 'time_frame2':
                 # time_frame2 uses the same valid time frames as time_frame1
-                variable_options['time_frame2'] = variable_options.get('time_frame1', [])
+                pass
             else:
                 raise ValueError(f"Variable not implemented: {variable}")
 
-        # Generate all combinations of variable values
+        # Generate all combinations of variable values (except time frames, which we handle later)
         variable_combinations = itertools.product(
-            *[variable_options[var] for var in variables]
+            *[variable_options[var] for var in variables if var not in ['time_frame1', 'time_frame2']]
         )
 
-        # Iterate through each combination and format the question
         for combination in variable_combinations:
+            if found_example:
+                break
+
             if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
                 break
 
-            filled_values = dict(zip(variables, combination))
+            # Reconstruct filled_values with the non-time frame variables
+            filled_values = dict(zip([var for var in variables if var not in ['time_frame1', 'time_frame2']], combination))
 
-            # Validate any dependent variable constraints
+            # Validate dependent variable constraints
             if 'climate_variable2' in filled_values:
                 if filled_values['climate_variable2'] == filled_values['climate_variable1']:
                     continue  # Skip invalid combinations
@@ -286,25 +441,39 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                 if filled_values['location2'] == filled_values['location1']:
                     continue  # Skip invalid combinations
 
-            # Decompose the time frames into individual questions
-            if 'time_frame1' in filled_values:
-                for time_frame in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
+            # Now process time frames if needed
+            if 'time_frame1' in variables:
+                # --- Filter allowed time frames up front for seasonal questions ---
+                climate_var = filled_values['climate_variable1']
+                if 'season' in question or 'seasonal' in question:
+                    allowed_time_frames = []
+                    for climate_var in template_question_manager.climate_variables.keys():
+                        for tf in template_question_manager.allowed_time_frames[climate_var]:
+                            if tf.split(' ')[0] == 'spring':    # seasonal questions will cover all four seasons so no duplicates needed here
+                                allowed_time_frames.append(tf)
+                        if len(allowed_time_frames) > 0:
+                            filled_values['climate_variable1'] = climate_var
+                            break
+                else:
+                    allowed_time_frames = template_question_manager.allowed_time_frames[climate_var]
+
+                # Iterate over the (possibly filtered) allowed time frames for time_frame1.
+                for time_frame in allowed_time_frames:
+                    if found_example:
+                        break
                     if cmd_args.max != -1 and len(data_collections) >= cmd_args.max:
                         break
 
-                    if 'season' in question or 'seasonal' in question:
-                        if time_frame.split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
-                            continue
-                        elif time_frame.split('-')[0] == 'spring':  # keep only one here, because one question already actually covers all four seasons
-                            time_frame = ' '.join(name.split()[2:])
-                        else:
-                            continue
-
                     filled_values['time_frame1'] = time_frame
-                    time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in time_frame else 'RCP8.5' if 'RCP8.5' in time_frame else None
+                    time_frame1_rcp = (
+                        'RCP4.5' if 'RCP4.5' in time_frame
+                        else 'RCP8.5' if 'RCP8.5' in time_frame
+                        else None
+                    )
 
-                    if 'time_frame2' in filled_values:
-                        for time_frame2 in template_question_manager.allowed_time_frames[filled_values['climate_variable1']]:
+                    # If a second time frame is required, process it here.
+                    if 'time_frame2' in variables:
+                        for time_frame2 in template_question_manager.allowed_time_frames[climate_var]:
                             if time_frame2 == filled_values['time_frame1']:
                                 continue
                             # Avoid conflicting RCP scenarios between time_frame1 and time_frame2
@@ -320,127 +489,49 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
 
                             filled_values['time_frame2'] = time_frame2
 
-                            # Format the question
                             formatted_question = question.format(**filled_values)
-                            data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                            data_collections.append({
+                                'question': formatted_question,
+                                'filled_values': filled_values.copy(),
+                                'template': question
+                            })
                             if cmd_args.verbose:
                                 print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
                                 print(formatted_question)
-                    else:
-                        # If there are two different climate variables, make sure that they share the same timeframe1 if there is no timeframe2
-                        if 'climate_variable2' in filled_values and 'time_frame2' not in filled_values:
-                            if filled_values['time_frame1'] not in template_question_manager.allowed_time_frames[filled_values['climate_variable2']]:
-                                continue
+                            found_example = True
+                            break  # Exit the time_frame2 loop after the first valid example
 
-                        # Format the question
+                    else:
+                        # For questions with a single time frame, format and store the question.
                         formatted_question = question.format(**filled_values)
-                        data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                        data_collections.append({
+                            'question': formatted_question,
+                            'filled_values': filled_values.copy(),
+                            'template': question
+                        })
                         if cmd_args.verbose:
                             print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
                             print(formatted_question)
+                        found_example = True
+                        break  # Exit the allowed_time_frames loop for time_frame1
+
             else:
-                # Format the question
+                # If there is no time_frame1 variable, simply format and store the question.
                 formatted_question = question.format(**filled_values)
-                data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
+                data_collections.append({
+                    'question': formatted_question,
+                    'filled_values': filled_values.copy(),
+                    'template': question
+                })
                 if cmd_args.verbose:
                     print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
                     print(formatted_question)
+                found_example = True
+                break  # Exit the variable_combinations loop
 
-            # Save the data collections to a JSON file
-            with open('./data/all_filled_questions.json', 'w') as json_file:
-                json.dump(data_collections, json_file, indent=4)
-
-
-def generate_one_for_each_template(cmd_args, template_question_manager, location_picker):
-    """
-    Iterate through all templates and generate one question for each template
-    """
-    # Set iterator for "basic" difficulty
-    iterator = template_question_manager.set_iterator(difficulty="basic")
-    data_collections = []
-
-    for i, (question, variables) in enumerate(iterator):
-        # Get a random question and the required variables for "basic" difficulty
-        print(f'{utils.Colors.OKGREEN}{"Question Template:"}{utils.Colors.ENDC}')
-        print(question)
-        variables.sort()
-        print(f'{utils.Colors.OKGREEN}{"Required Variables:"}{utils.Colors.ENDC}')
-        print(variables)
-
-        # Randomly select values for the required variables
-        filled_values = {}
-        for variable in variables:
-            if variable in ['climate_variable1', 'climate_variable2']:
-                if variable == 'climate_variable1':
-                    filled_values['climate_variable1'] = random.choice(list(template_question_manager.climate_variables.keys()))
-                else:
-                    assert 'climate_variable1' in filled_values, "climate_variable1 must be set before climate_variable2"
-                    filled_values['climate_variable2'] = random.choice(
-                        [var for var in template_question_manager.climate_variables.keys() if var != filled_values['climate_variable1']]
-                    )
-
-            elif variable in ['location1', 'location2']:
-                if variable == 'location1':
-                    filled_values['location1'] = location_picker.choose_random_location(level=cmd_args.geoscale)
-                else:
-                    assert 'location1' in filled_values, "location1 must be set before location2"
-                    filled_values['location2'] = location_picker.choose_random_location(level=cmd_args.geoscale, exclude=filled_values['location1'])
-
-            elif variable in ['time_frame1', 'time_frame2']:
-                if variable == 'time_frame1':
-                    done = False
-                    while not done:
-                        filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
-                        if 'season' in question or 'seasonal' in question:
-                            if filled_values['time_frame1'].split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
-                                done = False
-                                continue
-                            filled_values['time_frame1'] = ' '.join(filled_values['time_frame1'].split()[2:])
-
-                        if 'climate_variable2' in filled_values:
-                            if filled_values['time_frame1'] in template_question_manager.full_time_frames[filled_values['climate_variable2']]:
-                                if 'season' in question or 'seasonal' in question:
-                                    if filled_values['time_frame1'].split('-')[0] not in ['spring', 'summer', 'autumn', 'winter']:
-                                        done = False
-                                        continue
-                                done = True
-                            else:
-                                done = False
-                        else:
-                            done = True
-                else:
-                    assert 'time_frame1' in filled_values, "time_frame1 must be set before time_frame2"
-
-                    # Filter time_frame2 to avoid conflicting RCP scenarios
-                    time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in filled_values['time_frame1'] else 'RCP8.5' if 'RCP8.5' in filled_values['time_frame1'] else None
-                    done = False
-                    while not done:
-                        time_frame2 = random.choice([var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()])
-                        filled_values['time_frame2'] = time_frame2
-
-                        done = True
-                        if time_frame2 == filled_values['time_frame1']:
-                            done = False
-                        if time_frame1_rcp == 'RCP4.5' and 'RCP8.5' in time_frame2:
-                            done = False
-                        if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
-                            done = False
-                        if 'mid-century' in filled_values['time_frame1'] and 'historical' in filled_values['time_frame2']:
-                            done = False
-                        if 'end-century' in filled_values['time_frame1'] and ('historical' in filled_values['time_frame2'] or 'mid-century' in filled_values['time_frame2']):
-                            done = False
-
-
-        # Format the question
-        formatted_question = question.format(**filled_values)
-        data_collections.append({'question': formatted_question, 'filled_values': filled_values.copy(), 'template': question})
-        if cmd_args.verbose:
-            print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
-        print(formatted_question)
-
-    # Save the data collections to a JSON file
-    with open('./data/test_filled_questions.json', 'w') as json_file:
-        json.dump(data_collections, json_file, indent=4)
+        # Save the data collections to a JSON file (can be done after processing each template)
+        with open('./data/test_filled_questions.json', 'w') as json_file:
+            json.dump(data_collections, json_file, indent=4)
 
 
 # Example Usage

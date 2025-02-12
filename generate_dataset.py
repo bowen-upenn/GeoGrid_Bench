@@ -31,8 +31,11 @@ def generate_dataset(args):
     ppocr = ocr.OCR()
 
     for i, data_sample in tqdm(enumerate(dataloader('./data/test_filled_questions.json'))):
-        if i != 4:
+        if i != 4 and i != 0:
             continue
+
+        question_dir = f'output/question_{i}'
+        os.makedirs(question_dir, exist_ok=True)
 
         question = data_sample['question']
         filled_values = data_sample['filled_values']
@@ -122,17 +125,17 @@ def generate_dataset(args):
         global_midpoint = (global_max + global_min) / 2
         color_norm = TwoSlopeNorm(vmin=global_min, vmax=global_max, vcenter=global_midpoint)
 
-        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1, angle1 = visualization.visualize_grids(data_df1, data_var1, title1, df_col_name1, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
+        heatmap1, overlay1, overlay_path1, overlay_width1, overlay_height1, angle1 = visualization.visualize_grids(question_dir, data_df1, data_var1, title1, df_col_name1, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap1', verbose=args['inference']['verbose'])
         if 'season' in template or 'seasonal' in template:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(data_df2, data_var2, title2, df_col_name2, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
-            heatmap3, overlay3, overlay_path3, overlay_width3, overlay_height3, angle3 = visualization.visualize_grids(data_df3, data_var3, title3, df_col_name3, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap3', verbose=args['inference']['verbose'])
-            heatmap4, overlay4, overlay_path4, overlay_width4, overlay_height4, angle4 = visualization.visualize_grids(data_df4, data_var4, title4, df_col_name4, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap4', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(question_dir, data_df2, data_var2, title2, df_col_name2, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap3, overlay3, overlay_path3, overlay_width3, overlay_height3, angle3 = visualization.visualize_grids(question_dir, data_df3, data_var3, title3, df_col_name3, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap3', verbose=args['inference']['verbose'])
+            heatmap4, overlay4, overlay_path4, overlay_width4, overlay_height4, angle4 = visualization.visualize_grids(question_dir, data_df4, data_var4, title4, df_col_name4, cell_geometries1, color_norm, center_lat=latlong1[0], center_lon=latlong1[1], size_km=args['inference']['radius'], output_path='heatmap4', verbose=args['inference']['verbose'])
         else:
             heatmap2, overlay2, overlay_path2, data_df2, df_col_name2, cell_geometries2, angle2, heatmap3 = None, None, None, None, None, None, None, None
         if 'climate_variable2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(question_dir, data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
         elif 'location2' in filled_values or 'time_frame2' in filled_values:
-            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
+            heatmap2, overlay2, overlay_path2, overlay_width2, overlay_height2, angle2 = visualization.visualize_grids(question_dir, data_df2, data_var2, title2, df_col_name2, cell_geometries2, color_norm, center_lat=latlong2[0], center_lon=latlong2[1], size_km=args['inference']['radius'], output_path='heatmap2', verbose=args['inference']['verbose'])
 
         if 'season' in template or 'seasonal' in template:
             heatmap_merged = utils.merge_two_figures(
@@ -143,13 +146,13 @@ def generate_dataset(args):
                 utils.merge_two_figures(overlay1, overlay2),
                 utils.merge_two_figures(overlay3, overlay4)
             )
-            heatmap_merged.save('heatmap_merged.png')
-            overlay_merged.save('heatmap_overlay_merged.png')
+            heatmap_merged.save(os.path.join(question_dir, 'heatmap_merged.png'))
+            overlay_merged.save(os.path.join(question_dir, 'heatmap_overlay_merged.png'))
         elif heatmap2 is not None:
             heatmap_merged = utils.merge_two_figures(heatmap1, heatmap2)
             overlay_merged = utils.merge_two_figures(overlay1, overlay2)
-            heatmap_merged.save('heatmap_merged.png')
-            overlay_merged.save('heatmap_overlay_merged.png')
+            heatmap_merged.save(os.path.join(question_dir, 'heatmap_merged.png'))
+            overlay_merged.save(os.path.join(question_dir, 'heatmap_overlay_merged.png'))
         if args['inference']['verbose']:
             print("Merged heatmap and overlay saved.")
 

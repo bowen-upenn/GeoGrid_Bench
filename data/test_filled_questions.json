@@ -1,87 +1,87 @@
 [
     {
-        "question": "Which region in the Chicago, IL experienced the largest increase in cooling degree days during historical period?",
+        "question": "Which region in the New York, NY experienced the largest increase in maximum annual temperature during historical period?",
         "filled_values": {
-            "climate_variable1": "cooling degree days",
-            "location1": "Chicago, IL",
+            "location1": "New York, NY",
+            "climate_variable1": "maximum annual temperature",
             "time_frame1": "historical period"
         },
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
-        "question": "Which region in the Chicago, IL experienced the largest spatial variation in heating degree in historical period?",
+        "question": "What is the spatial variation of maximum annual temperature in New York, NY during historical period?",
         "filled_values": {
-            "climate_variable1": "heating degree",
-            "location1": "Chicago, IL",
+            "climate_variable1": "maximum annual temperature",
+            "location1": "New York, NY",
             "time_frame1": "historical period"
         },
-        "template": "Which region in the {location1} experienced the largest spatial variation in {climate_variable1} during {time_frame1}?"
+        "template": "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?"
     },
     {
-        "question": "What is the correlation between wind speed and minimum annual temperature in the San Jose, CA during historical period?",
+        "question": "How has maximum annual temperature changed between historical period and mid-century period (RCP4.5) in the New York, NY?",
         "filled_values": {
-            "climate_variable1": "wind speed",
+            "climate_variable1": "maximum annual temperature",
+            "location1": "New York, NY",
+            "time_frame1": "historical period",
+            "time_frame2": "mid-century period (RCP4.5)"
+        },
+        "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
+    },
+    {
+        "question": "What is the correlation between maximum annual temperature and minimum annual temperature in the New York, NY during historical period?",
+        "filled_values": {
+            "climate_variable1": "maximum annual temperature",
             "climate_variable2": "minimum annual temperature",
-            "location1": "San Jose, CA",
+            "location1": "New York, NY",
             "time_frame1": "historical period"
         },
         "template": "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?"
     },
     {
-        "question": "How has the fire weather index changed between autumn in historical period and autumn in end-century period in the San Jose, CA?",
+        "question": "What is the seasonal variation of fire weather index in New York, NY during spring in historical period?",
         "filled_values": {
             "climate_variable1": "fire weather index",
-            "location1": "San Jose, CA",
-            "time_frame1": "autumn in historical period",
-            "time_frame2": "autumn in end-century period"
-        },
-        "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
-    },
-    {
-        "question": "What is the seasonal variation of fire weather index in Urbana, IL during mid-century period?",
-        "filled_values": {
-            "climate_variable1": "fire weather index",
-            "location1": "Urbana, IL",
-            "time_frame1": "mid-century period"
+            "location1": "New York, NY",
+            "time_frame1": "spring in historical period"
         },
         "template": "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?"
     },
     {
-        "question": "Which season in end-century period saw the highest levels of maximum seasonal heat index in El Paso, TX?",
+        "question": "Which season in spring in historical period saw the highest levels of fire weather index in New York, NY?",
         "filled_values": {
-            "climate_variable1": "maximum seasonal heat index",
-            "location1": "El Paso, TX",
-            "time_frame1": "end-century period"
+            "climate_variable1": "fire weather index",
+            "location1": "New York, NY",
+            "time_frame1": "spring in historical period"
         },
         "template": "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?"
     },
     {
-        "question": "How does cooling degree days compare between Santa Ana, CA and Columbus, GA during mid-century period (RCP8.5)?",
+        "question": "How does maximum annual temperature compare between New York, NY and Los Angeles, CA during historical period?",
         "filled_values": {
-            "climate_variable1": "cooling degree days",
-            "location1": "Santa Ana, CA",
-            "location2": "Columbus, GA",
-            "time_frame1": "mid-century period (RCP8.5)"
+            "climate_variable1": "maximum annual temperature",
+            "location1": "New York, NY",
+            "location2": "Los Angeles, CA",
+            "time_frame1": "historical period"
         },
         "template": "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?"
     },
     {
-        "question": "Which of Oklahoma City, OK or North Las Vegas, NV experienced a greater change in number of days with daily heat index above 125 F throughout summer in historical period?",
+        "question": "Which of New York, NY or Los Angeles, CA experienced a greater change in maximum annual temperature throughout historical period?",
         "filled_values": {
-            "climate_variable1": "number of days with daily heat index above 125 F",
-            "location1": "Oklahoma City, OK",
-            "location2": "North Las Vegas, NV",
-            "time_frame1": "summer in historical period"
+            "location1": "New York, NY",
+            "location2": "Los Angeles, CA",
+            "climate_variable1": "maximum annual temperature",
+            "time_frame1": "historical period"
         },
         "template": "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1}?"
     },
     {
-        "question": "How does the seasonal variation of number of days with daily heat index above 95 F in Honolulu, HI compare to that in Garland, TX for historical period?",
+        "question": "How does the seasonal variation of fire weather index in New York, NY compare to that in Los Angeles, CA for spring in historical period?",
         "filled_values": {
-            "climate_variable1": "number of days with daily heat index above 95 F",
-            "location1": "Honolulu, HI",
-            "location2": "Garland, TX",
-            "time_frame1": "historical period"
+            "climate_variable1": "fire weather index",
+            "location1": "New York, NY",
+            "location2": "Los Angeles, CA",
+            "time_frame1": "spring in historical period"
         },
         "template": "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?"
     }
