@@ -5,6 +5,7 @@ import random
 import re
 import ast
 import math
+import os
 
 import utils
 
@@ -335,7 +336,7 @@ class OCR:
         self.ocr = PaddleOCR(lang='en', show_log=False)  # need to run only once to download and load model into memory
 
 
-    def draw_result(self, img_path, result):
+    def draw_result(self, img_path, result, question_dir=None):
         result = result[0]
         image = Image.open(img_path).convert('RGB')
 
@@ -344,7 +345,11 @@ class OCR:
         scores = [line[1][1] for line in result]
         im_show = draw_ocr(image, boxes, txts, scores, font_path='Arial.ttf')
         im_show = Image.fromarray(im_show)
-        im_show.save('ocr_result.jpg')
+
+        if question_dir:
+            im_show.save(question_dir + '/ocr_result.jpg')
+        else:
+            im_show.save('ocr_result.jpg')
 
 
     def merge_split_lines(self, result):
@@ -391,7 +396,7 @@ class OCR:
 
                     # Merge texts
                     merged_text += f" {line2[1][0]}"
-                    print(f"Merged {line1[1][0]} and {line2[1][0]}")
+                    # print(f"Merged {line1[1][0]} and {line2[1][0]}")
 
                     # Average scores
                     merged_score = (merged_score + line2[1][1]) / 2
@@ -404,9 +409,9 @@ class OCR:
         return merged_result
 
 
-    def run_ocr_detection(self, img_path, angle, verbose=False):
+    def run_ocr_detection(self, img_path, angle, question_dir=None, verbose=False):
+        img_path = os.path.join(question_dir, img_path)
         result = self.ocr.ocr(img_path, cls=False)
-        self.draw_result(img_path, result)
         heatmap_rect = find_heatmap_region(result[0], angle)
 
         invaild_lines = []
@@ -431,7 +436,7 @@ class OCR:
                 res = result[idx]
                 for line in res:
                     print(line)
-        self.draw_result(img_path, result)
+            self.draw_result(img_path, result)
 
         return result[0], names_in_regions, invalid_names
 

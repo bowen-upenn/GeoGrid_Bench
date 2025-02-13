@@ -13,8 +13,8 @@ visual_qa_mode = {"Which region in the {location1} experienced the largest incre
                   "What is the correlation between {climate_variable1} and {climate_variable2} in the {location1} during {time_frame1}?": 'region',
                   "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?": None,
                   "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?": None,
-                  "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?": 'block2',
-                  "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1}?": None,
+                  "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?": 'block',
+                  "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1} and {time_frame2}?": None,
                   "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?": None}
 
 
@@ -30,7 +30,7 @@ class TemplateQuestionManager:
                 "What is the seasonal variation of {climate_variable1} in {location1} during {time_frame1}?",
                 "Which season in {time_frame1} saw the highest levels of {climate_variable1} in {location1}?",
                 "How does {climate_variable1} compare between {location1} and {location2} during {time_frame1}?",
-                "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1}?",
+                "Which of {location1} or {location2} experienced a greater change in {climate_variable1} throughout {time_frame1} and {time_frame2}?",
                 "How does the seasonal variation of {climate_variable1} in {location1} compare to that in {location2} for {time_frame1}?"
             ],
             "harder": [
@@ -172,61 +172,6 @@ class LocationPicker:
             return chosen_state
 
 
-def generate_one_random_question(cmd_args, template_question_manager, location_picker):
-    """
-    Find a random value for each variable in each template question
-    and generate formatted questions.
-    """
-    # Get a random question and the required variables for "basic" difficulty
-    question, variables = template_question_manager.get_random_question_and_variables(difficulty="basic")
-    print(f'{utils.Colors.OKGREEN}{"Random Question Template:"}{utils.Colors.ENDC}')
-    print(question)
-    print(f'{utils.Colors.OKGREEN}{"Required Variables:"}:{utils.Colors.ENDC}')
-    print(variables)
-
-    # Randomly select values for the required variables
-    filled_values = {}
-    for variable in variables:
-        if variable in ['climate_variable1', 'climate_variable2']:
-            if variable == 'climate_variable1':
-                filled_values['climate_variable1'] = random.choice(list(template_question_manager.climate_variables.keys()))
-            else:
-                assert 'climate_variable1' in filled_values, "climate_variable1 must be set before climate_variable2"
-                filled_values['climate_variable2'] = random.choice(
-                    [var for var in template_question_manager.climate_variables.keys() if var != filled_values['climate_variable1']]
-                )
-
-        elif variable in ['location1', 'location2']:
-            if variable == 'location1':
-                filled_values['location1'] = location_picker.choose_random_location(level=cmd_args.geoscale)
-            else:
-                assert 'location1' in filled_values, "location1 must be set before location2"
-                filled_values['location2'] = location_picker.choose_random_location(level=cmd_args.geoscale, exclude=filled_values['location1'])
-
-        elif variable in ['time_frame1', 'time_frame2']:
-            if variable == 'time_frame1':
-                filled_values['time_frame1'] = random.choice(list(template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()))
-            else:
-                assert 'time_frame1' in filled_values, "time_frame1 must be set before time_frame2"
-
-                # Filter time_frame2 to avoid conflicting RCP scenarios
-                time_frame1_rcp = 'RCP4.5' if 'RCP4.5' in filled_values['time_frame1'] else 'RCP8.5' if 'RCP8.5' in filled_values['time_frame1'] else None
-                filled_values['time_frame2'] = random.choice([
-                    var for var in template_question_manager.allowed_time_frames[filled_values['climate_variable1']].keys()
-                    if var != filled_values['time_frame1'] and (
-                            (time_frame1_rcp == 'RCP4.5' and 'RCP8.5' not in var) or
-                            (time_frame1_rcp == 'RCP8.5' and 'RCP4.5' not in var)
-                    )
-                ])
-        else:
-            raise ValueError(f"Variable not implemented: {variable}")
-
-    # Format the question with filled values
-    formatted_question = question.format(**filled_values)
-    print(f'{utils.Colors.OKGREEN}Filled Question:{utils.Colors.ENDC}')
-    print(formatted_question)
-
-
 def generate_all_combinations(cmd_args, template_question_manager, location_picker):
     """
     Iterate through all possible combinations of variables in each template question
@@ -309,7 +254,20 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             # Process time frames if needed
             if 'time_frame1' in variables:
                 climate_var = filled_values['climate_variable1']
-                allowed_time_frames = template_question_manager.allowed_time_frames[climate_var]
+                if 'season' in question or 'seasonal' in question:
+                    allowed_time_frames = {}
+                    for climate_var in template_question_manager.climate_variables.keys():
+                        for tf in template_question_manager.allowed_time_frames[climate_var]:
+                            if tf.split(' ')[0] == 'spring':  # seasonal questions will cover all four seasons so no duplicates needed here
+                                # curr_tf = ' '.join(tf.split(' ')[1:])
+                                allowed_time_frames[tf] = template_question_manager.allowed_time_frames[climate_var][tf]
+                        if len(allowed_time_frames) > 0:
+                            filled_values['climate_variable1'] = climate_var
+                            break
+                else:
+                    allowed_time_frames = template_question_manager.allowed_time_frames[climate_var]
+
+                # Randomly shuffle the order of the allowed time frames
                 allowed_time_frames = list(allowed_time_frames.items())
                 random.shuffle(allowed_time_frames)
                 allowed_time_frames = dict(allowed_time_frames)
@@ -321,7 +279,10 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                     if len(template_questions[question]) >= 1000:
                         break
 
-                    filled_values['time_frame1'] = time_frame
+                    if 'season' in question or 'seasonal' in question:
+                        filled_values['time_frame1'] = ' '.join(time_frame.split(' ')[2:])
+                    else:
+                        filled_values['time_frame1'] = time_frame
                     time_frame1_rcp = (
                         'RCP4.5' if 'RCP4.5' in time_frame
                         else 'RCP8.5' if 'RCP8.5' in time_frame
@@ -450,7 +411,7 @@ def generate_one_for_each_template(cmd_args, template_question_manager, location
                     for climate_var in template_question_manager.climate_variables.keys():
                         for tf in template_question_manager.allowed_time_frames[climate_var]:
                             if tf.split(' ')[0] == 'spring':    # seasonal questions will cover all four seasons so no duplicates needed here
-                                allowed_time_frames.append(tf)
+                                allowed_time_frames.append(' '.join(tf.split(' ')[2:]))  # Remove the first word and store the rest
                         if len(allowed_time_frames) > 0:
                             filled_values['climate_variable1'] = climate_var
                             break
@@ -538,7 +499,7 @@ def generate_one_for_each_template(cmd_args, template_question_manager, location
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Command line arguments')
     parser.add_argument('--geoscale', type=str, default="city", help='Select the geographical scale for the location: city, county, or state')
-    parser.add_argument('--mode', type=str, default="random", help='Select the mode: random or iterate or test')
+    parser.add_argument('--mode', type=str, default="test", help='Select the mode: iterate or test')
     parser.add_argument('--max', type=int, default=-1, help='Select the maximum number of questions to generate if in iterate mode. Default is -1, which generates all possible questions.')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Set verbose to True')
     cmd_args = parser.parse_args()

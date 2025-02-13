@@ -2,6 +2,7 @@ models:
     llm: "gpt-4o-mini"
 inference:
     verbose: False
+    data: 'test_filled_questions.json'
     num_samples: -1
     geometry: 'square'
     radius: 64

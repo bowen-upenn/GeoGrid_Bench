@@ -407,19 +407,29 @@ def reformat_to_2d_table(data, crossmodel_indices):
     return pivot_table
 
 
-def merge_two_figures(figure1, figure2):
+def merge_two_figures(figure1, figure2, vertical=False):
     # Ensure the inputs are valid images
     if not isinstance(figure1, Image.Image) or not isinstance(figure2, Image.Image):
         raise ValueError("Both inputs must be PIL Image instances.")
 
-    new_width = figure1.width + figure2.width
-    assert figure1.height == figure2.height, "The two figures must have the same height"
-    new_height = figure1.height
-    merged_figure = Image.new("RGB", (new_width, new_height))
+    if vertical:
+        new_height = figure1.height + figure2.height
+        # assert figure1.width == figure2.width, "The two figures must have the same width"
+        new_width = max(figure1.width, figure2.width)
+        merged_figure = Image.new("RGB", (new_width, new_height), "white")
 
-    # Paste images side by side
-    merged_figure.paste(figure1, (0, 0))
-    merged_figure.paste(figure2, (figure1.width, 0))
+        # Paste images vertically
+        merged_figure.paste(figure1, (0, 0))
+        merged_figure.paste(figure2, (0, figure1.height))
+    else:
+        new_width = figure1.width + figure2.width
+        # assert figure1.height == figure2.height, "The two figures must have the same height"
+        new_height = figure1.height
+        merged_figure = Image.new("RGB", (new_width, new_height))
+
+        # Paste images side by side
+        merged_figure.paste(figure1, (0, 0))
+        merged_figure.paste(figure2, (figure1.width, 0))
     return merged_figure
 
 
