@@ -1,100 +1,100 @@
-New York, NY
-Los Angeles, CA
-Chicago, IL
-Houston, TX
-Phoenix, AZ
-Philadelphia, PA
-San Antonio, TX
-San Diego, CA
-Dallas, TX
-Jacksonville, FL
-Austin, TX
-Fort Worth, TX
-San Jose, CA
-Columbus, OH
-Charlotte, NC
-Indianapolis, IN
-San Francisco, CA
-Seattle, WA
-Denver, CO
-Oklahoma City, OK
-Nashville, TN
-Washington DC
-El Paso, TX
-Las Vegas, NV
-Boston, MA
-Detroit, MI
-Portland, OR
-Louisville, KY
-Baltimore, MD
-Milwaukee, WI
-Albuquerque, NM
-Tucson, AZ
-Fresno, CA
-Sacramento, CA
-Mesa, AZ
-Atlanta, GA
-Kansas City, MO
-Colorado Springs, CO
-Omaha, NE
-Raleigh, NC
-Miami, FL
-Virginia Beach, VA
-Long Beach, CA
-Oakland, CA
-Minneapolis, MN
-Bakersfield, CA
-Arlington, TX
-Wichita, KS
-Aurora, CO
-New Orleans, LA
-Cleveland, OH
-Honolulu, HI
-Anaheim, CA
-Henderson, NV
-Orlando, FL
-Lexington, KY
-Stockton, CA
-Riverside, CA
-Irvine, CA
-Cincinnati, OH
-Santa Ana, CA
-Newark, NJ
-Saint Paul, MN
-Pittsburgh, PA
-Greensboro, NC
-Durham, NC
-Lincoln, NE
-Jersey City, NJ
-Plano, TX
-North Las Vegas, NV
-St. Louis, MO
-Madison, WI
-Chandler, AZ
-Gilbert, AZ
-Reno, NV
-Buffalo, NY
-Chula Vista, CA
-Fort Wayne, IN
-Lubbock, TX
-Toledo, OH
-Chesapeake, VA
-Glendale, AZ
-Winston-Salem, NC
-Port St. Lucie, FL
-Tuscon, AZ
-Garland, TX
-Spokane, WA
-Richmond, VA
-Fremont, CA
-Salt Lake City, UT
-Yonkers, NY
-Worcester, MA
-Rochester, NY
-Columbus, GA
-Santa Rosa, CA
-Kansas City, KS
-Sunnyvale, CA
-Bellevue, WA
-Urbana, IL
-Syracuse, NY
+New York, New York, United States
+Los Angeles, California, United States
+Chicago, Illinois, United States
+Houston, Texas, United States
+Phoenix, Arizona, United States
+Philadelphia, Pennsylvania, United States
+San Antonio, Texas, United States
+San Diego, California, United States
+Dallas, Texas, United States
+Tampa, Florida, United States
+Austin, Texas, United States
+Fort Worth, Texas, United States
+San Jose, California, United States
+Columbus, Ohio, United States
+Charlotte, North Carolina, United States
+Indianapolis, Indiana, United States
+San Francisco, California, United States
+Seattle, Washington, United States
+Denver, Colorado, United States
+Oklahoma City, Oklahoma, United States
+Nashville, Tennessee, United States
+Washington, D.C., United States
+El Paso, Texas, United States
+Las Vegas, Nevada, United States
+Boston, Massachusetts, United States
+Detroit, Michigan, United States
+Portland, Oregon, United States
+Louisville, Kentucky, United States
+Baltimore, Maryland, United States
+Milwaukee, Wisconsin, United States
+Albuquerque, New Mexico, United States
+Tucson, Arizona, United States
+Fresno, California, United States
+Sacramento, California, United States
+Mesa, Arizona, United States
+Atlanta, Georgia, United States
+Kansas City, Missouri, United States
+Colorado Springs, Colorado, United States
+Omaha, Nebraska, United States
+Raleigh, North Carolina, United States
+Miami, Florida, United States
+Virginia Beach, Virginia, United States
+Long Beach, California, United States
+Oakland, California, United States
+Minneapolis, Minnesota, United States
+Bakersfield, California, United States
+Arlington, Texas, United States
+Wichita, Kansas, United States
+Aurora, Colorado, United States
+New Orleans, Louisiana, United States
+Cleveland, Ohio, United States
+Honolulu, Hawaii, United States
+Anaheim, California, United States
+Henderson, Nevada, United States
+Orlando, Florida, United States
+Lexington, Kentucky, United States
+Stockton, California, United States
+Riverside, California, United States
+Irvine, California, United States
+Cincinnati, Ohio, United States
+Santa Ana, California, United States
+Newark, New Jersey, United States
+Saint Paul, Minnesota, United States
+Pittsburgh, Pennsylvania, United States
+Greensboro, North Carolina, United States
+Durham, North Carolina, United States
+Lincoln, Nebraska, United States
+Jersey City, New Jersey, United States
+Plano, Texas, United States
+North Las Vegas, Nevada, United States
+St. Louis, Missouri, United States
+Madison, Wisconsin, United States
+Chandler, Arizona, United States
+Gilbert, Arizona, United States
+Reno, Nevada, United States
+Buffalo, New York, United States
+Chula Vista, California, United States
+Fort Wayne, Indiana, United States
+Lubbock, Texas, United States
+Toledo, Ohio, United States
+Chesapeake, Virginia, United States
+Glendale, Arizona, United States
+Winston-Salem, North Carolina, United States
+Port St. Lucie, Florida, United States
+Tucson, Arizona, United States
+Garland, Texas, United States
+Spokane, Washington, United States
+Richmond, Virginia, United States
+Fremont, California, United States
+Salt Lake City, Utah, United States
+Yonkers, New York, United States
+Worcester, Massachusetts, United States
+Rochester, New York, United States
+Columbus, Georgia, United States
+Santa Rosa, California, United States
+Kansas City, Kansas, United States
+Sunnyvale, California, United States
+Bellevue, Washington, United States
+Urbana, Illinois, United States
+Syracuse, New York, United States

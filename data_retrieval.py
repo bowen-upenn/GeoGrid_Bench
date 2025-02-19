@@ -65,7 +65,8 @@ def get_lat_long(location_description, llm):
     geolocator = Nominatim(user_agent="Lauren")
 
     # Get location
-    location = geolocator.geocode(location_description)
+    location = geolocator.geocode(location_description, exactly_one=True, country_codes='US')
+    print('location_description', location_description, 'location', location)
     # Extract latitude and longitude
     if location:
         return (location.latitude, location.longitude)

@@ -196,7 +196,6 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
 
         # Identify the region with the highest average value
         max_region = max(region_averages, key=lambda k: (region_averages[k] if not np.isnan(region_averages[k]) else -np.inf))
-        print('max_region', max_region)
         other_regions = [region for region in region_averages.keys() if region != max_region]
         other_regions = np.random.choice(other_regions, 3)
         correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
