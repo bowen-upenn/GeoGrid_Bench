@@ -64,6 +64,8 @@ class BenchmarkDatasetGenerator:
         samples = self.load_samples()
         total = self.num_samples if self.num_samples > 0 else len(samples)
         for idx, sample in tqdm(enumerate(samples), total=total):
+            if idx != 0:
+                continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
             self.process_sample(sample, idx)
@@ -135,7 +137,6 @@ class BenchmarkDatasetGenerator:
             filled.get("location1"),
             filled.get("location2"),
             vis_outputs.get("table2")[5] if vis_outputs.get("table2") else None,
-            vis_outputs.get("table2")[1] if vis_outputs.get("table2") else None,
             vis_outputs.get("table2")[2] if vis_outputs.get("table2") else None,
             data_tables.get("table2")[0] if data_tables.get("table2") else None,
             data_tables.get("table3")[0] if data_tables.get("table3") else None,
@@ -147,14 +148,24 @@ class BenchmarkDatasetGenerator:
             verbose=self.verbose
         )
 
+        # Construct the QA dictionary dynamically
         qa = {
             "question": question,
             "rephrased_question": rephrased_question,
             "filled_values": filled,
             "template": template,
             "correct_answer": correct_ans,
-            "incorrect_answers": incorrect_ans
+            "incorrect_answers": incorrect_ans,
         }
+
+        # Dynamically add available data tables
+        for i in range(1, 9):  # Loop from data_var1 to data_var8
+            key = f"data_var{i}"
+            if f"table{i}" in data_tables and data_tables[f"table{i}"]:
+                qa[key] = data_tables[f"table{i}"][0]  # Extract the data array
+                qa[f"latlong{i}"] = data_tables[f"table{i}"][1]  # Extract lat/long
+
+        # Print QA results if verbose mode is enabled
         if self.verbose:
             utils.print_qa(qa)
 
@@ -300,8 +311,8 @@ class BenchmarkDatasetGenerator:
         elif len(data_tables) == 2:
             # Titles may depend on whether a second climate variable was given.
             if 'climate_variable2' in filled:
-                title1 = filled.get('location1', filled.get('climate_variable1'))
-                title2 = filled.get('location1', filled.get('climate_variable2'))
+                title1 = filled.get('climate_variable1')
+                title2 = filled.get('climate_variable2')
             else:
                 if 'time_frame2' in filled:
                     title1 = filled.get('time_frame1')
