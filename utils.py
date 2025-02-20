@@ -488,6 +488,10 @@ def print_qa(qa):
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
     data_var3 = qa['data_var3'] if 'data_var3' in qa else None
     data_var4 = qa['data_var4'] if 'data_var4' in qa else None
+    data_var5 = qa['data_var5'] if 'data_var5' in qa else None
+    data_var6 = qa['data_var6'] if 'data_var6' in qa else None
+    data_var7 = qa['data_var7'] if 'data_var7' in qa else None
+    data_var8 = qa['data_var8'] if 'data_var8' in qa else None
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -499,16 +503,36 @@ def print_qa(qa):
     print(latlong1)
 
     print(f'{Colors.OKGREEN}Data 1:{Colors.ENDC}')
+    data_var1 = data_var1.iloc[::-1]
     print(data_var1)
     if data_var2 is not None:
+        data_var2 = data_var2.iloc[::-1]
         print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
         print(data_var2)
     if data_var3 is not None:
+        data_var3 = data_var3.iloc[::-1]
         print(f'{Colors.OKGREEN}Data 3:{Colors.ENDC}')
         print(data_var3)
     if data_var4 is not None:
+        data_var4 = data_var4.iloc[::-1]
         print(f'{Colors.OKGREEN}Data 4:{Colors.ENDC}')
         print(data_var4)
+    if data_var5 is not None:
+        data_var5 = data_var5.iloc[::-1]
+        print(f'{Colors.OKGREEN}Data 5:{Colors.ENDC}')
+        print(data_var5)
+    if data_var6 is not None:
+        data_var6 = data_var6.iloc[::-1]
+        print(f'{Colors.OKGREEN}Data 6:{Colors.ENDC}')
+        print(data_var6)
+    if data_var7 is not None:
+        data_var7 = data_var7.iloc[::-1]
+        print(f'{Colors.OKGREEN}Data 7:{Colors.ENDC}')
+        print(data_var7)
+    if data_var8 is not None:
+        data_var8 = data_var8.iloc[::-1]
+        print(f'{Colors.OKGREEN}Data 8:{Colors.ENDC}')
+        print(data_var8)
 
     print(f'{Colors.OKGREEN}Correct answers:{Colors.ENDC}')
     print(json.dumps(correct_answer, indent=4))

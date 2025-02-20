@@ -307,7 +307,6 @@ class BenchmarkDatasetGenerator:
                 center_lat=tbl[1][0], center_lon=tbl[1][1],
                 size_km=self.radius, output_path="heatmap1", verbose=self.verbose
             )
-            print('vis_outputs["table1"]', vis_outputs["table1"])
         elif len(data_tables) == 2:
             # Titles may depend on whether a second climate variable was given.
             if 'climate_variable2' in filled:

@@ -67,7 +67,7 @@ def find_grid_angle(image):
     return angle
 
 
-def add_crossmodel_indices_on_map(data_df_geo, m):
+def add_crossmodel_indices_on_map(data_df_geo, m, col_name=None):
     transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
 
     row_leftmost = {}  # Store the leftmost geometry per row
@@ -112,6 +112,27 @@ def add_crossmodel_indices_on_map(data_df_geo, m):
                 html=f'<div style="font-size: 12px; color: red; font-weight: bold;">{c_label}</div>'
             )
         ).add_to(m)
+
+    if col_name:
+        all_data = []
+        # Place numerical values at the correct location in black
+        for _, row in data_df_geo.iterrows():
+            geometry = row['geometry']
+            if geometry.is_empty:
+                continue
+
+            centroid = geometry.centroid
+            x_center, y_center = centroid.x, centroid.y
+            lon, lat = transformer.transform(x_center, y_center)  # Convert projection
+
+            value = row[col_name]
+            all_data.append(value)
+            folium.Marker(
+                location=[lat, lon],
+                icon=folium.DivIcon(
+                    html=f'<div style="font-size: 10px; color: black;">{value:.2f}</div>'
+                )
+            ).add_to(m)
 
     return m
 
@@ -231,7 +252,10 @@ def overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
 
 
 def visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm,
-                      center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap.png", verbose=False):
+                      center_lat, center_lon, size_km=64, alpha=True, output_path="heatmap.png", add_text=False, verbose=False):
+    if add_text:
+        output_path = output_path[:-4] + "_with_text" + output_path[-4:]
+
     # Extract the column corresponding to the time_period
     variable_columns = [col for col in data_df.columns if time_period == col]
     variable_df = data_df[['Crossmodel'] + variable_columns]
@@ -289,7 +313,10 @@ def visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, colo
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name]),
         )
     )
-    m = add_crossmodel_indices_on_map(data_df_geo, m)
+    if add_text:
+        m = add_crossmodel_indices_on_map(data_df_geo, m, col_name)
+    else:
+        m = add_crossmodel_indices_on_map(data_df_geo, m)
     colormap.caption = "Values"
     m.add_child(colormap)
 
@@ -385,7 +412,10 @@ def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geom
     # Normalize the matrix for color mapping
     # heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
     # heatmap = visualize_heatmap(data_df, time_period, cell_geometries, color_norm, title, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
-    heatmap = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
+    heatmap = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
+                                output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=False, verbose=verbose)
+    _ = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
+                                output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=True, verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"

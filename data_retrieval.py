@@ -157,29 +157,126 @@ def retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs,
 
 def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, radius=36, verbose=False):
     """
-    This function retrieves the tabular data of the location described in the description within a radius of 36 km.
+    Retrieves tabular data for a given location description within a specified radius (default 36 km).
+
+    Parameters:
+        variable (str): The climate variable of interest.
+        location_description (str): A description of the location to search.
+        time_period (str): The time period for data retrieval.
+        llm (object): The language model for geocoding.
+        geometry (gpd.GeoDataFrame): Geometries used in spatial operations.
+        radius (int, optional): Search radius in km. Defaults to 36.
+        verbose (bool, optional): If True, print additional details.
+
+    Returns:
+        tuple: Contains retrieved data, crossmodel indices, lat/lon of location, full data DataFrame,
+               adjusted time period, and associated cell geometries.
     """
-    # Convert the format of arguments
+    # Convert variable and time_period using predefined mappings
     data_filename = utils.climate_variables[variable]
     time_period = utils.full_time_frames[variable][time_period]
 
-    # Load the grid cells data
+    # Load grid cell data
     grid_cells_gdf, grid_cells_crs, data_df = initialize_data(data_filename)
 
-    # Retrieve the latitude and longitude from the response
+    # Retrieve latitude and longitude based on location description
     latlong = get_lat_long(location_description, llm)
     lat, lon = latlong[0], latlong[1]
 
-    # Retrieve the crossmodel indices in the database
-    intersecting_cells, crossmodel_indices, cell_geometries = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
+    # Retrieve intersecting cells and corresponding crossmodel indices
+    intersecting_cells, crossmodel_indices, cell_geometries = retrieve_crossmodels_within_radius(
+        lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose
+    )
 
-    # Retrieve the data from the database using the crossmodel indices
-    data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
-    data = data[time_period].values
+    # Extract required columns based on time_period
+    variable_columns = [col for col in data_df.columns if time_period == col]
+    if not variable_columns:
+        raise ValueError(f"Time period '{time_period}' not found in data columns.")
 
-    if verbose:
-        print(data)
-    return data, crossmodel_indices, latlong, data_df, time_period, cell_geometries
+    variable_df = data_df[['Crossmodel'] + variable_columns]
+    col_name = variable_columns[0]
+
+    # Merge with geometries
+    variable_df = variable_df.merge(cell_geometries, on='Crossmodel', how='inner')
+    data_df_geo = gpd.GeoDataFrame(
+        data_df.merge(variable_df, on='Crossmodel', how='inner', suffixes=('_x', '_y'))
+    )
+
+    # Remove duplicated columns
+    x_columns = [col for col in data_df_geo.columns if col.endswith('_x')]
+    for x_col in x_columns:
+        base_col = x_col[:-2]  # Remove '_x' suffix to get the base column name
+        y_col = f"{base_col}_y"
+
+        data_df_geo[base_col] = data_df_geo[x_col]  # Prioritize the '_x' column
+        data_df_geo.drop(columns=[x_col], inplace=True)
+        if y_col in data_df_geo.columns:
+            data_df_geo.drop(columns=[y_col], inplace=True)
+
+    # Remove duplicate columns
+    data_df_geo = data_df_geo.loc[:, ~data_df_geo.columns.duplicated()]
+
+    # Retrieve the relevant data using the crossmodel indices
+    data = []
+    crossmodel_indices = []
+    for _, row in data_df_geo.iterrows():
+        geometry = row['geometry']
+        if geometry.is_empty:
+            continue
+        value = row[col_name]
+        crossmodel_index = row['Crossmodel']
+        data.append(value)
+        crossmodel_indices.append(crossmodel_index)
+    # data = data_df_geo[data_df_geo['Crossmodel'].isin(intersecting_cells['Crossmodel'])][col_name].values
+
+    return data, crossmodel_indices, latlong, data_df_geo, time_period, cell_geometries
+
+
+    # # Place numerical values at the correct location in black
+    # for _, row in data_df_geo.iterrows():
+    #     geometry = row['geometry']
+    #     if geometry.is_empty:
+    #         continue
+    #
+    #     centroid = geometry.centroid
+    #     x_center, y_center = centroid.x, centroid.y
+    #     lon, lat = transformer.transform(x_center, y_center)  # Convert projection
+    #
+    #     value = row[col_name]
+    #     folium.Marker(
+    #         location=[lat, lon],
+    #         icon=folium.DivIcon(
+    #             html=f'<div style="font-size: 10px; color: black;">{value:.2f}</div>'
+    #         )
+    #     ).add_to(m)
+
+
+
+# def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, radius=36, verbose=False):
+#     """
+#     This function retrieves the tabular data of the location described in the description within a radius of 36 km.
+#     """
+#     # Convert the format of arguments
+#     data_filename = utils.climate_variables[variable]
+#     time_period = utils.full_time_frames[variable][time_period]
+#
+#     # Load the grid cells data
+#     grid_cells_gdf, grid_cells_crs, data_df = initialize_data(data_filename)
+#
+#     # Retrieve the latitude and longitude from the response
+#     latlong = get_lat_long(location_description, llm)
+#     lat, lon = latlong[0], latlong[1]
+#
+#     # Retrieve the crossmodel indices in the database
+#     intersecting_cells, crossmodel_indices, cell_geometries = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
+#
+#     # Retrieve the data from the database using the crossmodel indices
+#     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
+#     data = data[time_period].values
+#
+#     if verbose:
+#         print(data)
+#     return data, crossmodel_indices, latlong, data_df, time_period, cell_geometries
 
 
 if __name__ == "__main__":
