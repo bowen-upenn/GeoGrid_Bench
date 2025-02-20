@@ -64,7 +64,7 @@ class BenchmarkDatasetGenerator:
         samples = self.load_samples()
         total = self.num_samples if self.num_samples > 0 else len(samples)
         for idx, sample in tqdm(enumerate(samples), total=total):
-            if idx != 0:
+            if idx != 8:
                 continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
@@ -122,7 +122,7 @@ class BenchmarkDatasetGenerator:
         self.merge_visualizations(vis_outputs, template, question_dir)
 
         # Query the oracle for correct/incorrect answers.
-        # in vis_outputs: heatmap, overlay, overlay_path, overlay_width, overlay_height, angle
+        # in vis_outputs: heatmap, heatmap_with_text, overlay, overlay_path, overlay_width, overlay_height, angle
         # in oracle_codes: question_dir, ppocr, llm, template, data_var1, angle1, overlay1, overlay_path1, location_description1,
         # location_description2, angle2, overlay_path2, data_var2, data_var3, data_var4, data_var5, data_var6, data_var7, data_var8
         correct_ans, incorrect_ans = oracle.oracle_codes(
@@ -131,13 +131,13 @@ class BenchmarkDatasetGenerator:
             self.llm,
             template,
             data_tables.get("table1")[0] if data_tables.get("table1") else None,
-            vis_outputs.get("table1")[5] if vis_outputs.get("table1") else None,
-            vis_outputs.get("table1")[1] if vis_outputs.get("table1") else None,
+            vis_outputs.get("table1")[6] if vis_outputs.get("table1") else None,
             vis_outputs.get("table1")[2] if vis_outputs.get("table1") else None,
+            vis_outputs.get("table1")[3] if vis_outputs.get("table1") else None,
             filled.get("location1"),
             filled.get("location2"),
-            vis_outputs.get("table2")[5] if vis_outputs.get("table2") else None,
-            vis_outputs.get("table2")[2] if vis_outputs.get("table2") else None,
+            vis_outputs.get("table2")[6] if vis_outputs.get("table2") else None,
+            vis_outputs.get("table2")[3] if vis_outputs.get("table2") else None,
             data_tables.get("table2")[0] if data_tables.get("table2") else None,
             data_tables.get("table3")[0] if data_tables.get("table3") else None,
             data_tables.get("table4")[0] if data_tables.get("table4") else None,
@@ -150,6 +150,7 @@ class BenchmarkDatasetGenerator:
 
         # Construct the QA dictionary dynamically
         qa = {
+            "question_dir": question_dir,
             "question": question,
             "rephrased_question": rephrased_question,
             "filled_values": filled,
@@ -290,8 +291,8 @@ class BenchmarkDatasetGenerator:
         valid_arrays = [tbl[0] for tbl in data_tables.values() if tbl and tbl[0] is not None]
         if not valid_arrays:
             return {}
-        global_min = np.nanmin([arr.min() for arr in valid_arrays])
-        global_max = np.nanmax([arr.max() for arr in valid_arrays])
+        global_min = np.nanmin([arr.min().min() for arr in valid_arrays])
+        global_max = np.nanmax([arr.max().max() for arr in valid_arrays])
         global_mid = (global_min + global_max) / 2
         color_norm = TwoSlopeNorm(vmin=global_min, vmax=global_max, vcenter=global_mid)
         vis_outputs = {}
@@ -357,8 +358,8 @@ class BenchmarkDatasetGenerator:
         valid_arrays = [tbl[0] for tbl in data_tables.values() if tbl and tbl[0] is not None]
         if not valid_arrays:
             return {}
-        global_min = np.nanmin([arr.min() for arr in valid_arrays])
-        global_max = np.nanmax([arr.max() for arr in valid_arrays])
+        global_min = np.nanmin([arr.min().min() for arr in valid_arrays])
+        global_max = np.nanmax([arr.max().max() for arr in valid_arrays])
         global_mid = (global_min + global_max) / 2
         color_norm = TwoSlopeNorm(vmin=global_min, vmax=global_max, vcenter=global_mid)
         vis_outputs = {}
@@ -409,9 +410,48 @@ class BenchmarkDatasetGenerator:
             return viz_result[index] if viz_result is not None else None
 
         merged_heatmap = None
+        merged_heatmap_with_text = None
         merged_overlay = None
 
-        if 'table3' in vis_outputs and get_image(vis_outputs.get('table3'), 0) is not None and get_image(vis_outputs.get('table4'), 0) is not None:
+        if 'table8' in vis_outputs:
+            # Merge heatmaps for eight tables.
+            hm1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 0),
+                                          get_image(vis_outputs.get('table2'), 0))
+            hm2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 0),
+                                          get_image(vis_outputs.get('table4'), 0))
+            hm3 = utils.merge_two_figures(get_image(vis_outputs.get('table5'), 0),
+                                          get_image(vis_outputs.get('table6'), 0))
+            hm4 = utils.merge_two_figures(get_image(vis_outputs.get('table7'), 0),
+                                          get_image(vis_outputs.get('table8'), 0))
+            merged_heatmap1 = utils.merge_two_figures(hm1, hm2)
+            merged_heatmap2 = utils.merge_two_figures(hm3, hm4)
+            merged_heatmap = utils.merge_two_figures(merged_heatmap1, merged_heatmap2, vertical=True)
+
+            hmt1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 1),
+                                           get_image(vis_outputs.get('table2'), 1))
+            hmt2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 1),
+                                           get_image(vis_outputs.get('table4'), 1))
+            hmt3 = utils.merge_two_figures(get_image(vis_outputs.get('table5'), 1),
+                                           get_image(vis_outputs.get('table6'), 1))
+            hmt4 = utils.merge_two_figures(get_image(vis_outputs.get('table7'), 1),
+                                           get_image(vis_outputs.get('table8'), 1))
+            merged_heatmap_with_text1 = utils.merge_two_figures(hmt1, hmt2)
+            merged_heatmap_with_text2 = utils.merge_two_figures(hmt3, hmt4)
+            merged_heatmap_with_text = utils.merge_two_figures(merged_heatmap_with_text1, merged_heatmap_with_text2, vertical=True)
+
+            ov1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 2),
+                                          get_image(vis_outputs.get('table2'), 2))
+            ov2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 2),
+                                          get_image(vis_outputs.get('table4'), 2))
+            ov3 = utils.merge_two_figures(get_image(vis_outputs.get('table5'), 2),
+                                          get_image(vis_outputs.get('table6'), 2))
+            ov4 = utils.merge_two_figures(get_image(vis_outputs.get('table7'), 2),
+                                          get_image(vis_outputs.get('table8'), 2))
+            merged_overlay1 = utils.merge_two_figures(ov1, ov2)
+            merged_overlay2 = utils.merge_two_figures(ov3, ov4)
+            merged_overlay = utils.merge_two_figures(merged_overlay1, merged_overlay2, vertical=True)
+
+        elif 'table3' in vis_outputs and get_image(vis_outputs.get('table3'), 0) is not None and get_image(vis_outputs.get('table4'), 0) is not None:
             hm1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 0),
                                           get_image(vis_outputs.get('table2'), 0))
             hm2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 0),
@@ -419,18 +459,31 @@ class BenchmarkDatasetGenerator:
             vertical = not ('season' in template or 'seasonal' in template)
             merged_heatmap = utils.merge_two_figures(hm1, hm2, vertical=vertical)
 
-            ov1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 1),
-                                          get_image(vis_outputs.get('table2'), 1))
-            ov2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 1),
-                                          get_image(vis_outputs.get('table4'), 1))
+            hmt1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 1),
+                                           get_image(vis_outputs.get('table2'), 1))
+            hmt2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 1),
+                                           get_image(vis_outputs.get('table4'), 1))
+            vertical = not ('season' in template or 'seasonal' in template)
+            merged_heatmap_with_text = utils.merge_two_figures(hmt1, hmt2, vertical=vertical)
+
+            ov1 = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 2),
+                                          get_image(vis_outputs.get('table2'), 2))
+            ov2 = utils.merge_two_figures(get_image(vis_outputs.get('table3'), 2),
+                                          get_image(vis_outputs.get('table4'), 2))
             merged_overlay = utils.merge_two_figures(ov1, ov2, vertical=vertical)
+
         elif 'table2' in vis_outputs:
             merged_heatmap = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 0),
                                                      get_image(vis_outputs.get('table2'), 0))
-            merged_overlay = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 1),
-                                                     get_image(vis_outputs.get('table2'), 1))
+            merged_heatmap_with_text = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 1),
+                                                               get_image(vis_outputs.get('table2'), 1))
+            merged_overlay = utils.merge_two_figures(get_image(vis_outputs.get('table1'), 2),
+                                                     get_image(vis_outputs.get('table2'), 2))
+
         if merged_heatmap is not None:
             merged_heatmap.save(os.path.join(question_dir, 'heatmap_merged.png'))
+        if merged_heatmap_with_text is not None:
+            merged_heatmap_with_text.save(os.path.join(question_dir, 'heatmap_with_text_merged.png'))
         if merged_overlay is not None:
             merged_overlay.save(os.path.join(question_dir, 'heatmap_overlay_merged.png'))
         if self.verbose:

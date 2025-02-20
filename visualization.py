@@ -414,7 +414,7 @@ def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geom
     # heatmap = visualize_heatmap(data_df, time_period, cell_geometries, color_norm, title, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
     heatmap = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
                                 output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=False, verbose=verbose)
-    _ = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
+    heatmap_with_text = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
                                 output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=True, verbose=verbose)
 
     # Draw the final image with transparency on maps
@@ -422,4 +422,4 @@ def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geom
     overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
                                                         color_norm, center_lat, center_lon, size_km, alpha=True, output_path=os.path.join(question_dir, overlay_path), verbose=verbose)
 
-    return heatmap, overlay, overlay_path, overlay_width, overlay_height, angle
+    return heatmap, heatmap_with_text, overlay, overlay_path, overlay_width, overlay_height, angle

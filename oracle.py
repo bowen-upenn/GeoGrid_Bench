@@ -1187,33 +1187,33 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
 
         # 2. Divide each seasonal dataset into regions.
         regions_loc1 = {
-            "spring": divide_into_regions(data_var1),
-            "summer": divide_into_regions(data_var2),
-            "autumn": divide_into_regions(data_var3),
-            "winter": divide_into_regions(data_var4)
+            "spring": data_var1,
+            "summer": data_var2,
+            "autumn": data_var3,
+            "winter": data_var4
         }
 
         regions_loc2 = {
-            "spring": divide_into_regions(data_var5),
-            "summer": divide_into_regions(data_var6),
-            "autumn": divide_into_regions(data_var7),
-            "winter": divide_into_regions(data_var8)
+            "spring": data_var5,
+            "summer": data_var6,
+            "autumn": data_var7,
+            "winter": data_var8
         }
 
         # 3. Compute seasonal means and standard deviation for each location
         means_loc1 = [
-            np.nanmean(regions_loc1["spring"].values.flatten()),
-            np.nanmean(regions_loc1["summer"].values.flatten()),
-            np.nanmean(regions_loc1["autumn"].values.flatten()),
-            np.nanmean(regions_loc1["winter"].values.flatten())
+            np.nanmean(regions_loc1["spring"].values),
+            np.nanmean(regions_loc1["summer"].values),
+            np.nanmean(regions_loc1["autumn"].values),
+            np.nanmean(regions_loc1["winter"].values),
         ]
         stdev_loc1 = np.nanstd(means_loc1)
 
         means_loc2 = [
-            np.nanmean(regions_loc2["spring"].values.flatten()),
-            np.nanmean(regions_loc2["summer"].values.flatten()),
-            np.nanmean(regions_loc2["autumn"].values.flatten()),
-            np.nanmean(regions_loc2["winter"].values.flatten())
+            np.nanmean(regions_loc2["spring"].values),
+            np.nanmean(regions_loc2["summer"].values),
+            np.nanmean(regions_loc2["autumn"].values),
+            np.nanmean(regions_loc2["winter"].values),
         ]
         stdev_loc2 = np.nanstd(means_loc2)
 
@@ -1221,25 +1221,25 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         percent_difference = abs(stdev_loc1 - stdev_loc2) / max(stdev_loc1, stdev_loc2)
 
         if percent_difference <= 0.05:  # If within 5%, consider variations similar
-            correct_statement = f"For {time_frame1}, {location_description1} and {location_description2} exhibit similar seasonal variation in {climate_variable1}."
+            correct_statement = f"{location_description1} and {location_description2} exhibit similar seasonal variation."
             incorrect_statements = [
-                f"For {time_frame1}, {location_description1} exhibits much greater seasonal variation in {climate_variable1} than {location_description2}.",
-                f"For {time_frame1}, {location_description2} exhibits much greater seasonal variation in {climate_variable1} than {location_description1}.",
-                f"For {time_frame1}, {location_description1} and {location_description2} exhibit highly different seasonal variations in {climate_variable1}."
+                f"{location_description1} exhibits much greater seasonal variation than {location_description2}.",
+                f"{location_description2} exhibits much greater seasonal variation than {location_description1}.",
+                f"{location_description1} and {location_description2} exhibit highly different seasonal variations."
             ]
         elif stdev_loc1 > stdev_loc2:
-            correct_statement = f"For {time_frame1}, {location_description1} exhibits greater seasonal variation in {climate_variable1}."
+            correct_statement = f"{location_description1} exhibits greater seasonal variation in {climate_variable1}."
             incorrect_statements = [
-                f"For {time_frame1}, {location_description2} exhibits greater seasonal variation in {climate_variable1} than {location_description1}.",
-                f"For {time_frame1}, {location_description1} and {location_description2} exhibit similar seasonal variation in {climate_variable1}.",
-                f"For {time_frame1}, {location_description2} shows highly variable seasonal changes in {climate_variable1} while {location_description1} remains stable."
+                f"{location_description2} exhibits greater seasonal variation than {location_description1}.",
+                f"{location_description1} and {location_description2} exhibit similar seasonal variation.",
+                f"{location_description2} shows highly variable seasonal changes while {location_description1} remains stable."
             ]
         else:
-            correct_statement = f"For {time_frame1}, {location_description2} exhibits greater seasonal variation in {climate_variable1}."
+            correct_statement = f"{location_description2} exhibits greater seasonal variation."
             incorrect_statements = [
-                f"For {time_frame1}, {location_description1} exhibits greater seasonal variation in {climate_variable1} than {location_description2}.",
-                f"For {time_frame1}, {location_description1} and {location_description2} exhibit similar seasonal variation in {climate_variable1}.",
-                f"For {time_frame1}, {location_description1} shows highly variable seasonal changes in {climate_variable1} while {location_description2} remains stable."
+                f"{location_description1} exhibits greater seasonal variation than {location_description2}.",
+                f"{location_description1} and {location_description2} exhibit similar seasonal variation.",
+                f"{location_description1} shows highly variable seasonal changes while {location_description2} remains stable."
             ]
 
         # 5. Construct correct and incorrect answers

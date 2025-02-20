@@ -6,6 +6,7 @@ import random
 from PIL import Image
 import json
 import difflib
+import os
 
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
@@ -483,8 +484,10 @@ def match_tolerant_sets(source_set, target_set, threshold=0.8):
     return matched_names
 
 
-def print_qa(qa):
-    question, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 = qa['question'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
+def print_qa(qa, csv_file='output/qa_data.csv'):
+    question, question_dir, template, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 \
+        = qa['question'], qa['question_dir'], qa['template'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
+
     data_var2 = qa['data_var2'] if 'data_var2' in qa else None
     data_var3 = qa['data_var3'] if 'data_var3' in qa else None
     data_var4 = qa['data_var4'] if 'data_var4' in qa else None
@@ -492,6 +495,12 @@ def print_qa(qa):
     data_var6 = qa['data_var6'] if 'data_var6' in qa else None
     data_var7 = qa['data_var7'] if 'data_var7' in qa else None
     data_var8 = qa['data_var8'] if 'data_var8' in qa else None
+
+    image_paths = [
+        question_dir + ('heatmap_merged.png' if data_var2 is not None else 'heatmap1.png'),
+        question_dir + ('heatmap_with_text_merged.png' if data_var2 is not None else 'heatmap_with_text1.png'),
+        question_dir + ('heatmap_overlay_merged.png' if data_var2 is not None else 'heatmap_overlay1.png')
+    ]
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
     print(question)
@@ -539,6 +548,31 @@ def print_qa(qa):
     print(f'{Colors.OKGREEN}Incorrect answers:{Colors.ENDC}')
     print(json.dumps(incorrect_answer, indent=4))
 
+    # Prepare row for CSV
+    data_vars = {
+        'Data 1': data_var1.to_json(),
+        'Data 2': data_var2.to_json() if data_var2 is not None else '',
+        'Data 3': data_var3.to_json() if data_var3 is not None else '',
+        'Data 4': data_var4.to_json() if data_var4 is not None else '',
+        'Data 5': data_var5.to_json() if data_var5 is not None else '',
+        'Data 6': data_var6.to_json() if data_var6 is not None else '',
+        'Data 7': data_var7.to_json() if data_var7 is not None else '',
+        'Data 8': data_var8.to_json() if data_var8 is not None else ''
+    }
+    row = {
+        'Question ID': question_dir,
+        'Question': rephrased_question,
+        'Image Paths': json.dumps(image_paths),
+        'Correct Answers': json.dumps(correct_answer),
+        'Incorrect Answers': json.dumps(incorrect_answer),
+        **data_vars,
+        'Filled Values': json.dumps(filled_values),
+        'Template Question': template,
+        'Filled Template Question': question,
+    }
+
+    df = pd.DataFrame([row])
+    df.to_csv(csv_file, mode='a', index=False, header=not os.path.exists(csv_file))
 
 
 if __name__ == '__main__':
