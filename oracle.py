@@ -82,8 +82,8 @@ def calculate_spatial_variations(data_var, verbose=False):
     return abs(moran.I)
 
 
-def extract_place_names(question_dir, ppocr, llm, template, correct_region, angle1, overlay1, overlay_path1, location_description1, data_df2=None, overlay2=None, overlay_path2=None, location_description2=None, verbose=False):
-    ocr_results, names_in_regions, invalid_names = ppocr.run_ocr_detection(overlay_path1, angle1, question_dir)
+def extract_place_names(question_dir, ppocr, llm, template, correct_region, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, data_df2=None, overlay2=None, overlay_path2=None, location_description2=None, verbose=False):
+    ocr_results, names_in_regions, invalid_names = ppocr.run_ocr_detection(overlay_path1, angle1, heatmap_rect1, question_dir)
 
     correct_answer_place_names2, incorrect_answers_place_names2 = None, None
     if visual_qa_mode[template] is None:
@@ -98,7 +98,7 @@ def extract_place_names(question_dir, ppocr, llm, template, correct_region, angl
         red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
 
         # find the intersection between names in the correct region and names in the red_set
-        print('red_set', red_set, "correct_region", correct_region, "names_in_regions", names_in_regions)
+        print('red_set', red_set, "correct_region", correct_region, "names_in_regions", names_in_regions[correct_region])
         red_set = utils.match_tolerant_sets(red_set, names_in_regions[correct_region])
         print('matched red set', red_set)
         # red_set = list(set(names_in_regions[correct_region]) & set(red_set))
@@ -163,9 +163,9 @@ def sample_row_col_indices_from_region(regions, target_region, k=3, incorrect=Fa
         # else:
         #     sampled_values = remaining_values  # autumnback in case there are fewer remaining values than k
     else:
-        print('correct_region', correct_region)
+        # print('correct_region', correct_region)
         top_k_values = correct_region.unstack().dropna().nlargest(min(len(correct_region), k))    # Always select the grid with the largest value within the target region
-        print('target_region', target_region, 'top_k_values', top_k_values)
+        # print('target_region', target_region, 'top_k_values', top_k_values)
         sampled_values = top_k_values
 
     sampled_indices = [f"C{sampled_values.index[i][0]} R{sampled_values.index[i][1]}" for i in range(k)]
@@ -176,7 +176,7 @@ def sample_row_col_indices_from_region(regions, target_region, k=3, incorrect=Fa
     return sampled_indices
 
 
-def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1, overlay_path1, location_description1, location_description2=None,
+def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, location_description2=None,
                  angle2=None, overlay_path2=None, data_var2=None, data_var3=None, data_var4=None, data_var5=None, data_var6=None, data_var7=None, data_var8=None, verbose=False):
     if template == "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?":
         """
@@ -198,7 +198,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         max_region = max(region_averages, key=lambda k: (region_averages[k] if not np.isnan(region_averages[k]) else -np.inf))
         other_regions = [region for region in region_averages.keys() if region != max_region]
         other_regions = np.random.choice(other_regions, 3)
-        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
         top_k_indices_correct = sample_row_col_indices_from_region(regions, max_region, k=2, incorrect=False)
@@ -246,7 +246,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         max_region_var = list(regions.keys())[np.argmax(spatial_var)]
         other_regions_var = [region for region in regions.keys() if region != max_region_var]
         other_regions_var = np.random.choice(other_regions_var, 3)
-        correct_place_names_var, incorrect_place_names_var = extract_place_names(question_dir, ppocr, llm, template, max_region_var, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        correct_place_names_var, incorrect_place_names_var = extract_place_names(question_dir, ppocr, llm, template, max_region_var, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
         top_k_indices_correct_var = sample_row_col_indices_from_region(regions, max_region_var, k=2, incorrect=False)
@@ -324,7 +324,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         max_region = max(region_changes, key=lambda x: abs(x[1]))[0]
         other_regions = [region for region, _ in region_changes if region != max_region]
         other_regions = np.random.choice(other_regions, 3)
-        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
         top_k_indices_correct = sample_row_col_indices_from_region(regions_diff, max_region, k=2, incorrect=False)
@@ -478,7 +478,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         max_region = max_region["region"]
         other_regions = [r["region"] for r in region_results if r["region"] != max_region]
         other_regions = np.random.choice(other_regions, 3)
-        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
         top_k_indices_correct = sample_row_col_indices_from_region(regions_diff, max_region, k=2, incorrect=False)
@@ -749,7 +749,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         # 6. Extract place names for the region with highest variation
         correct_place_names, incorrect_place_names = extract_place_names(
             question_dir, ppocr, llm, template, max_region,
-            angle1, overlay1, overlay_path1, location_description1,
+            angle1, heatmap_rect1, overlay1, overlay_path1, location_description1,
             verbose=verbose
         )
 
@@ -988,7 +988,7 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
         max_region = max(region_changes, key=lambda x: abs(x[1]))[0]
         other_regions = [region for region, _ in region_changes if region != max_region]
         other_regions = np.random.choice(other_regions, 3)
-        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        correct_place_names, incorrect_place_names = extract_place_names(question_dir, ppocr, llm, template, max_region, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
 
         # Prepare answers
         top_k_indices_correct = sample_row_col_indices_from_region(regions_diff, max_region, k=2, incorrect=False)

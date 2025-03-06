@@ -31,7 +31,7 @@ from selenium.webdriver.chrome.options import Options
 import ocr
 
 
-def find_grid_angle(image):
+def find_grid_angle_and_bounding_box(image):
     image = np.array(image)
     distance_to_black = np.linalg.norm(image - np.array([0, 0, 0]), axis=-1)
     grid_mask = distance_to_black <= 80
@@ -64,7 +64,78 @@ def find_grid_angle(image):
         angle = 180 - angle
     # print("Detected line angle:", angle)
 
-    return angle
+    heatmap_rect = find_largest_white_component_and_bounding_box(edge, -angle)
+
+    return angle, heatmap_rect
+
+
+def order_box_points(box_points):
+    """
+    Orders the four corner points of the rotated bounding box in the order:
+    [top_left, top_right, lower_right, lower_left]
+    """
+    # Sort points based on y-coordinates (top-most first)
+    box_points = sorted(box_points, key=lambda p: p[1])
+
+    # Top two points (sort by x to get leftmost as top-left)
+    top_left, top_right = sorted(box_points[:2], key=lambda p: p[0])
+    # Bottom two points (sort by x to get leftmost as bottom-left)
+    lower_left, lower_right = sorted(box_points[2:], key=lambda p: p[0])
+
+    return np.array([top_left, top_right, lower_right, lower_left])
+
+
+def find_largest_white_component_and_bounding_box(image, angle):
+    """
+    Finds the largest connected white component in a grayscale image and computes its bounding box.
+    Then, it redefines the bounding box using the same center and edge lengths but with the angle set
+    to the provided input_angle. The resulting box is drawn and saved on the image.
+
+    :param image: NumPy array or PIL image.
+    :param input_angle: The angle (in degrees) to which the bounding box should be rotated.
+    :return: Ordered bounding box points (as an array) and the used angle.
+    """
+    # Convert PIL Image to NumPy array (if necessary) and to grayscale
+    if not isinstance(image, np.ndarray):
+        image = np.array(image.convert("L"))
+
+    # Threshold the image to get a binary mask
+    _, thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+
+    # Find contours of the white connected components
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Check if any contours are found
+    if not contours:
+        raise ValueError("No contours found in the image.")
+
+    # Find the largest contour based on area
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Create a mask for the largest component (if needed for further processing)
+    largest_component_mask = np.zeros_like(thresh)
+    cv2.drawContours(largest_component_mask, [largest_contour], -1, color=255, thickness=-1)
+
+    # Compute the rotated bounding box using the largest contour
+    rect = cv2.minAreaRect(largest_contour)
+    center, size, _ = rect  # ignore the angle computed by minAreaRect
+
+    # Create a new rectangle with the same center and size but with the angle set to input_angle.
+    new_rect = (center, size, angle)
+
+    # Get the box points for the new rotated rectangle and convert them to integers.
+    box_points = cv2.boxPoints(new_rect)
+    box_points = np.intp(box_points)
+    ordered_box_points = order_box_points(box_points)
+
+    # Draw the new bounding box on the original image (convert to BGR for visualization)
+    annotated_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    cv2.drawContours(annotated_image, [ordered_box_points], 0, (0, 255, 0), 2)
+
+    # Save the result
+    cv2.imwrite('box_of_heatmap.jpg', annotated_image)
+
+    return ordered_box_points
 
 
 def add_crossmodel_indices_on_map(data_df_geo, m, col_name=None):
@@ -227,7 +298,7 @@ def overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
     sleep(3)  # Wait for map to load
     driver.save_screenshot(output_path)
     screenshot = Image.open(output_path)
-    angle = find_grid_angle(screenshot)
+    # angle = find_grid_angle(screenshot)
     width, height = screenshot.size
 
     # Add title
@@ -248,7 +319,7 @@ def overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
         print(f"Map saved as image: {output_path} with size {width}x{height} pixels")
     driver.quit()
 
-    return new_image, width, height, angle
+    return new_image, width, height
 
 
 def visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm,
@@ -342,7 +413,7 @@ def visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, colo
     sleep(3)  # Allow time for the map to fully load
     driver.save_screenshot(output_path)
     screenshot = Image.open(output_path)
-    angle = find_grid_angle(screenshot)  # Assuming this function is defined elsewhere
+    angle, heatmap_rect = find_grid_angle_and_bounding_box(screenshot)  # Assuming this function is defined elsewhere
     width, height = screenshot.size
 
     # Optionally add a title bar to the image (if desired)
@@ -361,48 +432,7 @@ def visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, colo
         print(f"Heatmap image saved as: {output_path} with size {width}x{height} pixels")
     driver.quit()
 
-    return new_image
-
-# def visualize_heatmap(matrix, title, color_norm, output_path="heatmap", verbose=False):
-#     # Flip the matrix upside down to match the map orientation
-#     matrix = matrix.iloc[::-1]
-#
-#     # Normalize the matrix for color mapping
-#     norm = Normalize(vmin=matrix.min().min(), vmax=matrix.max().max())
-#     colormap = plt.get_cmap('coolwarm')
-#
-#     # Create the heatmap visualization
-#     fig, ax = plt.subplots(figsize=(10, 8))
-#     heatmap = ax.imshow(matrix, cmap=colormap, norm=color_norm)
-#
-#     # Add column and row indices as red bold text
-#     for i, row in enumerate(matrix.index):
-#         for j, col in enumerate(matrix.columns):
-#             value = matrix.iloc[i, j]
-#             if not np.isnan(value):
-#                 ax.text(j, i, f'{value:.1f}', ha='center', va='center', fontsize=8, color='black')
-#             else:
-#                 ax.text(j, i, 'N/A', ha='center', va='center', fontsize=8, color='black')
-#     ax.set_xticks(range(len(matrix.columns)))
-#     ax.set_yticks(range(len(matrix.index)))
-#     ax.set_xticklabels([f'C{col}' for col in matrix.columns], fontsize=10, color='red', fontweight='bold')
-#     ax.set_yticklabels([f'R{row}' for row in matrix.index], fontsize=10, color='red', fontweight='bold')
-#
-#     # Add color bar
-#     cbar = plt.colorbar(heatmap, ax=ax, orientation='vertical', shrink=0.8)
-#     cbar.set_label('Values', fontsize=12)
-#
-#     # Save and display the heatmap with indices
-#     plt.title(title.capitalize() + ' heatmap with row and column indices', fontsize=14, fontweight='bold')
-#     plt.tight_layout()
-#     plt.savefig(output_path, bbox_inches='tight')
-#     plt.show()
-#
-#     heatmap = Image.open(output_path)
-#     if verbose:
-#         print(f"Heatmap saved as: {output_path}")
-#     return heatmap, colormap, norm
-
+    return new_image, angle, heatmap_rect
 
 
 def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km=64, output_path="heatmap", verbose=False):
@@ -412,14 +442,14 @@ def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geom
     # Normalize the matrix for color mapping
     # heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
     # heatmap = visualize_heatmap(data_df, time_period, cell_geometries, color_norm, title, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
-    heatmap = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
+    heatmap, angle, heatmap_rect = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
                                 output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=False, verbose=verbose)
-    heatmap_with_text = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
+    heatmap_with_text, _, _ = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
                                 output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=True, verbose=verbose)
 
     # Draw the final image with transparency on maps
     overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
-    overlay, overlay_width, overlay_height, angle = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
+    overlay, overlay_width, overlay_height = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
                                                         color_norm, center_lat, center_lon, size_km, alpha=True, output_path=os.path.join(question_dir, overlay_path), verbose=verbose)
 
-    return heatmap, heatmap_with_text, overlay, overlay_path, overlay_width, overlay_height, angle
+    return heatmap, heatmap_with_text, overlay, overlay_path, overlay_width, overlay_height, angle, heatmap_rect

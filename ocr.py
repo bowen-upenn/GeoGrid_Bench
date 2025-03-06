@@ -409,10 +409,12 @@ class OCR:
         return merged_result
 
 
-    def run_ocr_detection(self, img_path, angle, question_dir=None, verbose=False):
+    def run_ocr_detection(self, img_path, angle, heatmap_rect=None, question_dir=None, verbose=False):
+        print('bounding boxes of the heatmap', heatmap_rect)
         img_path = os.path.join(question_dir, img_path)
         result = self.ocr.ocr(img_path, cls=False)
-        heatmap_rect = find_heatmap_region(result[0], angle)
+        # if heatmap_rect is not None:
+        #     heatmap_rect = find_heatmap_region(result[0], angle)
 
         invaild_lines = []
         invalid_names = []
