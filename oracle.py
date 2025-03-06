@@ -895,7 +895,9 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
 
         # 4. Prepare the correct answer text
         correct_answer = {
-            'overall': f"The {correct_season} season recorded the highest levels."
+            'trend': {
+                'overall': f"The {correct_season} season recorded the highest levels."
+            }
         }
 
         # 5. Prepare three incorrect answers.
@@ -904,11 +906,13 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
 
         incorrect_seasons = [other_seasons[0], other_seasons[1], other_seasons[2]]
         incorrect_answers = {
-            'overall': [
-                f"The {incorrect_seasons[0]} season recorded the highest levels.",
-                f"The {incorrect_seasons[1]} season recorded the highest levels.",
-                f"The {incorrect_seasons[2]} season recorded the highest levels."
-            ]
+            'trend': {
+                'overall': [
+                    f"The {incorrect_seasons[0]} season recorded the highest levels.",
+                    f"The {incorrect_seasons[1]} season recorded the highest levels.",
+                    f"The {incorrect_seasons[2]} season recorded the highest levels."
+                ]
+            }
         }
         return correct_answer, incorrect_answers
 
@@ -1157,7 +1161,9 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, overlay1
             }
         }
         incorrect_answers = {
-            'overall': alt_comparison
+            'trend': {
+                'overall': alt_comparison,
+            }
         }
         return correct_answer, incorrect_answers
 

@@ -62,7 +62,7 @@ def find_grid_angle(image):
         angle = -angle
     else:
         angle = 180 - angle
-    print("Detected line angle:", angle)
+    # print("Detected line angle:", angle)
 
     return angle
 

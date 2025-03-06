@@ -484,6 +484,25 @@ def match_tolerant_sets(source_set, target_set, threshold=0.8):
     return matched_names
 
 
+def flatten_answers(answer_dict):
+    """
+    Flattens the nested answer dictionary into a list of rows with additional columns for type and subtype.
+    """
+    rows = []
+    for ans_type, sub_dict in answer_dict.items():
+        for sub_type, values in sub_dict.items():
+            # Ensure values are always lists
+            if not isinstance(values, list):
+                values = [values]
+            for value in values:
+                rows.append({
+                    'Type': ans_type,
+                    'Subtype': sub_type,
+                    'Answer': value
+                })
+    return rows
+
+
 def print_qa(qa, csv_file='output/qa_data.csv'):
     question, question_dir, template, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 \
         = qa['question'], qa['question_dir'], qa['template'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
@@ -497,9 +516,9 @@ def print_qa(qa, csv_file='output/qa_data.csv'):
     data_var8 = qa['data_var8'] if 'data_var8' in qa else None
 
     image_paths = [
-        question_dir + ('heatmap_merged.png' if data_var2 is not None else 'heatmap1.png'),
-        question_dir + ('heatmap_with_text_merged.png' if data_var2 is not None else 'heatmap_with_text1.png'),
-        question_dir + ('heatmap_overlay_merged.png' if data_var2 is not None else 'heatmap_overlay1.png')
+        question_dir + ('/heatmap_merged.png' if data_var2 is not None else 'heatmap1.png'),
+        question_dir + ('/heatmap_with_text_merged.png' if data_var2 is not None else 'heatmap_with_text1.png'),
+        question_dir + ('/heatmap_overlay_merged.png' if data_var2 is not None else 'heatmap_overlay1.png')
     ]
 
     print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
@@ -559,19 +578,27 @@ def print_qa(qa, csv_file='output/qa_data.csv'):
         'Data 7': data_var7.to_json() if data_var7 is not None else '',
         'Data 8': data_var8.to_json() if data_var8 is not None else ''
     }
-    row = {
-        'Question ID': question_dir,
-        'Question': rephrased_question,
-        'Image Paths': json.dumps(image_paths),
-        'Correct Answers': json.dumps(correct_answer),
-        'Incorrect Answers': json.dumps(incorrect_answer),
-        **data_vars,
-        'Filled Values': json.dumps(filled_values),
-        'Template Question': template,
-        'Filled Template Question': question,
-    }
 
-    df = pd.DataFrame([row])
+    correct_rows = flatten_answers(correct_answer)
+
+    final_rows = []
+
+    for rid, row in enumerate(correct_rows):
+        final_rows.append({
+            'Question ID': question_dir.split("/")[-1] + '_' + str(rid),
+            'Question': rephrased_question,
+            'Image Paths': json.dumps(image_paths),
+            'Type': row['Type'],
+            'Subtype': row['Subtype'],
+            'Correct Answer': row['Answer'],
+            'Incorrect Answer': incorrect_answer[row['Type']][row['Subtype']],
+            **data_vars,
+            'Filled Values': json.dumps(filled_values),
+            'Template Question': template,
+            'Filled Template Question': question,
+        })
+
+    df = pd.DataFrame(final_rows)
     df.to_csv(csv_file, mode='a', index=False, header=not os.path.exists(csv_file))
 
 

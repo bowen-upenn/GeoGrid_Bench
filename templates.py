@@ -98,39 +98,46 @@ class LocationPicker:
         self.counties = []
         self.cities = []
 
-    def load_data(self):
+
+    def load_data(self, level, climate_related=True):
         """
         Load data from the files into memory.
         """
-        try:
-            # Load states
-            with open("./data/all_us_states.txt", "r") as states_file:
-                self.states = [line.strip() for line in states_file.readlines()]
+        if climate_related:
+            assert level == 'city', "Climate-related data is only available at the city level."
+            with open("./data/top_us_cities_climate_related.json", "r") as cities_file:
+                self.cities = json.load(cities_file)
+        else:
+            if level == 'state':
+                # Load states
+                with open("./data/all_us_states.txt", "r") as states_file:
+                    self.states = [line.strip() for line in states_file.readlines()]
+            elif level == 'county':
+                # Load counties
+                with open("./data/all_us_counties.txt", "r") as counties_file:
+                    self.counties = [line.strip() for line in counties_file.readlines()]
+            elif level == 'city':
+                # Load cities
+                with open("./data/top_us_cities.txt", "r") as cities_file:
+                    self.cities = [line.strip() for line in cities_file.readlines()]
 
-            # Load counties
-            with open("./data/all_us_counties.txt", "r") as counties_file:
-                self.counties = [line.strip() for line in counties_file.readlines()]
 
-            # Load cities
-            with open("./data/top_us_cities.txt", "r") as cities_file:
-                self.cities = [line.strip() for line in cities_file.readlines()]
-
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Error loading data: {e}. Ensure all required files are present.")
-
-
-    def get_all_locations(self, level='city'):
+    def get_all_locations(self, level='city', climate_variable=None):
         """
         Get all locations at the specified level.
         """
         assert level in ['state', 'county', 'city'], "Invalid level. Choose 'state', 'county', or 'city'."
+
+        if climate_variable:
+            assert level == 'city', "Climate-related data is only available at the city level."
+            return self.cities[climate_variable]
 
         if level == 'city':
             return self.cities
         elif level == 'county':
             return self.counties
         elif level == 'state':
-            return
+            return self.states
 
 
     def choose_random_location(self, level='city', exclude=None):
@@ -172,7 +179,7 @@ class LocationPicker:
             return chosen_state
 
 
-def generate_all_combinations(cmd_args, template_question_manager, location_picker):
+def generate_all_combinations(cmd_args, template_question_manager, location_picker, climate_related=True):
     """
     Iterate through all possible combinations of variables in each template question
     and generate formatted questions.
@@ -192,17 +199,33 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
         if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
             break
 
-        # Generate options for each variable as before
+        # Ensure climate_variable1 is processed first
+        variables.sort(key=lambda x: x != 'climate_variable1')
+
         variable_options = {}
         for variable in variables:
             if variable == 'climate_variable1':
+                # This is a list of climate variable keys.
                 variable_options['climate_variable1'] = list(template_question_manager.climate_variables.keys())
             elif variable == 'climate_variable2':
                 variable_options['climate_variable2'] = list(template_question_manager.climate_variables.keys())
             elif variable == 'location1':
-                variable_options['location1'] = location_picker.get_all_locations(level=cmd_args.geoscale)
+                if climate_related:
+                    # Build a dictionary mapping each climate variable to its list of locations.
+                    cv_keys = variable_options['climate_variable1']
+                    variable_options['location1'] = {
+                        cv: location_picker.get_all_locations(level=cmd_args.geoscale, climate_variable=cv)
+                        for cv in cv_keys
+                    }
+                else:
+                    # Non climate-related: get a simple list.
+                    variable_options['location1'] = location_picker.get_all_locations(level=cmd_args.geoscale)
             elif variable == 'location2':
-                variable_options['location2'] = variable_options['location1']
+                if climate_related:
+                    # For climate-related, share the same dictionary as location1.
+                    variable_options['location2'] = variable_options['location1']
+                else:
+                    variable_options['location2'] = variable_options['location1']
             elif variable == 'time_frame1':
                 pass  # Handled later
             elif variable == 'time_frame2':
@@ -210,12 +233,44 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             else:
                 raise ValueError(f"Variable not implemented: {variable}")
 
-        # Prepare list of variables that are not time frame related
-        non_time_vars = [var for var in variables if var not in ['time_frame1', 'time_frame2']]
-        # Generate all combinations of the non-time frame variables
+        # Prepare a list of variables to combine for non-time and non-location variables.
+        non_time_vars = [var for var in variables if var not in ['time_frame1', 'time_frame2', 'location1', 'location2']]
+
+        # Generate all combinations for the non-location, non-time variables.
         variable_combinations = list(itertools.product(
             *[variable_options[var] for var in non_time_vars]
         ))
+
+        # Now, for each combination (which includes a chosen climate_variable1),
+        # we iterate over the locations corresponding to that climate variable.
+        final_combinations = []
+        for comb in variable_combinations:
+            filled_values = dict(zip(non_time_vars, comb))
+            # If climate_related and the template requires a location,
+            # then use the climate_variable1 value to lookup the available locations.
+            if climate_related and 'climate_variable1' in filled_values:
+                cv_value = filled_values['climate_variable1']
+                available_locations = variable_options['location1'].get(cv_value, [])
+                # If the template expects two locations (location1 and location2):
+                if 'location2' in variables:
+                    # Iterate over all distinct pairs of locations from the available list.
+                    for loc1, loc2 in itertools.combinations(available_locations, 2):
+                        temp_filled = filled_values.copy()
+                        temp_filled['location1'] = loc1
+                        temp_filled['location2'] = loc2
+                        final_combinations.append(temp_filled)
+                else:
+                    # Otherwise, iterate over all available locations.
+                    for loc in available_locations:
+                        temp_filled = filled_values.copy()
+                        temp_filled['location1'] = loc
+                        final_combinations.append(temp_filled)
+            else:
+                # If not climate-related, locations were already provided as lists.
+                # Add combinations for location variables directly.
+                final_combinations.append(filled_values)
+
+        variable_combinations = final_combinations
 
         # Randomly shuffle the order of the combinations
         random.shuffle(variable_combinations)
@@ -230,17 +285,17 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             if len(template_questions[question]) >= 1000:  # Limit to 1000 per template
                 break
 
-            # Reconstruct filled_values for non-time frame variables
-            filled_values = dict(zip(non_time_vars, combination))
+            # Use the combination directly since it is already a dictionary of filled values.
+            filled_values = combination.copy()
 
-            # Sort values of interchangeable variables to avoid duplicates
+            # Sort values of interchangeable variables (e.g. for climate and location) to avoid duplicate orderings.
             for var1, var2 in [('climate_variable1', 'climate_variable2'), ('location1', 'location2')]:
                 if var1 in filled_values and var2 in filled_values:
                     sorted_values = tuple(sorted([filled_values[var1], filled_values[var2]]))
                     filled_values[var1], filled_values[var2] = sorted_values
 
-            # Check for duplicate variable combinations
-            frozen_combination = tuple(filled_values.items())
+            # Check for duplicate variable combinations using a sorted tuple of the items.
+            frozen_combination = tuple(sorted(filled_values.items()))
             if frozen_combination in seen_combinations:
                 continue  # Skip duplicate orderings
             seen_combinations.add(frozen_combination)
@@ -251,28 +306,27 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
             if 'location2' in filled_values and filled_values['location2'] == filled_values['location1']:
                 continue  # Skip invalid combinations
 
-            # Process time frames if needed
+            # Process time frames if needed.
             if 'time_frame1' in variables:
-                climate_var = filled_values['climate_variable1']
+                climate_var = filled_values.get('climate_variable1')
                 if 'season' in question or 'seasonal' in question:
                     allowed_time_frames = {}
-                    for climate_var in template_question_manager.climate_variables.keys():
-                        for tf in template_question_manager.allowed_time_frames[climate_var]:
-                            if tf.split(' ')[0] == 'spring':  # seasonal questions will cover all four seasons so no duplicates needed here
-                                # curr_tf = ' '.join(tf.split(' ')[1:])
-                                allowed_time_frames[tf] = template_question_manager.allowed_time_frames[climate_var][tf]
+                    for cv in template_question_manager.climate_variables.keys():
+                        for tf in template_question_manager.allowed_time_frames[cv]:
+                            if tf.split(' ')[0] == 'spring':  # seasonal questions cover all four seasons
+                                allowed_time_frames[tf] = template_question_manager.allowed_time_frames[cv][tf]
                         if len(allowed_time_frames) > 0:
-                            filled_values['climate_variable1'] = climate_var
+                            filled_values['climate_variable1'] = cv
                             break
                 else:
                     allowed_time_frames = template_question_manager.allowed_time_frames[climate_var]
 
-                # Randomly shuffle the order of the allowed time frames
+                # Randomly shuffle the allowed time frames.
                 allowed_time_frames = list(allowed_time_frames.items())
                 random.shuffle(allowed_time_frames)
                 allowed_time_frames = dict(allowed_time_frames)
 
-                # Loop over allowed time frames for time_frame1
+                # Loop over allowed time frames for time_frame1.
                 for time_frame in allowed_time_frames:
                     if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
                         break
@@ -289,12 +343,12 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                         else None
                     )
 
-                    # If a second time frame is required, process it
+                    # If a second time frame is required, process it.
                     if 'time_frame2' in variables:
                         for time_frame2 in allowed_time_frames:
                             if time_frame2 == filled_values['time_frame1']:
                                 continue
-                            # Avoid conflicting RCP scenarios
+                            # Avoid conflicting RCP scenarios.
                             if time_frame1_rcp == 'RCP4.5' and 'RCP8.5' in time_frame2:
                                 continue
                             if time_frame1_rcp == 'RCP8.5' and 'RCP4.5' in time_frame2:
@@ -304,7 +358,7 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
                             sorted_time_frames = tuple(sorted([filled_values['time_frame1'], filled_values['time_frame2']]))
                             filled_values['time_frame1'], filled_values['time_frame2'] = sorted_time_frames
 
-                            frozen_combination = tuple(filled_values.items())
+                            frozen_combination = tuple(sorted(filled_values.items()))
                             if frozen_combination in seen_combinations:
                                 continue
                             seen_combinations.add(frozen_combination)
@@ -506,7 +560,7 @@ if __name__ == "__main__":
 
     template_question_manager = TemplateQuestionManager()
     location_picker = LocationPicker()
-    location_picker.load_data()
+    location_picker.load_data(cmd_args.geoscale)
 
     if cmd_args.mode == 'random':
         generate_one_random_question(cmd_args, template_question_manager, location_picker)
