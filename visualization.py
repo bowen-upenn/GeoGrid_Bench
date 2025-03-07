@@ -266,8 +266,8 @@ def overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
             style_function=lambda feature: {
                 'fillColor': feature['properties']['color'],
                 'color': 'black',  # border color
-                'weight': 0.8,
-                'fillOpacity': 0.5,
+                'weight': 0.6,
+                'fillOpacity': 0.3,
             },
             tooltip=folium.features.GeoJsonTooltip(fields=['Crossmodel', col_name]),
         )
