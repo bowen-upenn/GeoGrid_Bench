@@ -64,11 +64,14 @@ class BenchmarkDatasetGenerator:
         samples = self.load_samples()
         total = self.num_samples if self.num_samples > 0 else len(samples)
         for idx, sample in tqdm(enumerate(samples), total=total):
-            # if idx != 2:
+            # if idx != 1:
             #     continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
-            self.process_sample(sample, idx)
+            try:
+                self.process_sample(sample, idx)
+            except Exception as e:
+                print(f'{utils.Colors.OKBLUE}Error Processing {idx}{utils.Colors.ENDC}{e}')
 
     def process_sample(self, sample, idx):
         filled = sample.get('filled_values', {})
@@ -92,11 +95,11 @@ class BenchmarkDatasetGenerator:
             if 'location2' in filled:
                 # (4) Eight data tables: seasonal template with two locations.
                 data_tables = self._retrieve_seasonal_eight_tables(sample)
-                vis_outputs = self.visualize_seasonal(data_tables, sample, idx, eight=True)
+                vis_outputs, title = self.visualize_seasonal(data_tables, sample, idx, eight=True)
             else:
                 # (3.2) Four seasonal tables: seasonal template with a single location.
                 data_tables = self._retrieve_seasonal_four_tables(sample)
-                vis_outputs = self.visualize_seasonal(data_tables, sample, idx, eight=False)
+                vis_outputs, title = self.visualize_seasonal(data_tables, sample, idx, eight=False)
         else:
             # Non-seasonal branch:
             if ('climate_variable2' not in filled and
@@ -104,17 +107,17 @@ class BenchmarkDatasetGenerator:
                     'time_frame2' not in filled):
                 # (1) Single data table.
                 data_tables = {"table1": self._retrieve_single_data_table(sample)}
-                vis_outputs = self.visualize_nonseasonal(data_tables, sample, idx)
+                vis_outputs, title = self.visualize_nonseasonal(data_tables, sample, idx)
             elif ('climate_variable2' in filled or
                   (('location2' in filled and 'time_frame2' not in filled) or
                    ('time_frame2' in filled and 'location2' not in filled))):
                 # (2) Two data tables.
                 data_tables = self._retrieve_two_data_tables(sample)
-                vis_outputs = self.visualize_nonseasonal(data_tables, sample, idx)
+                vis_outputs, title = self.visualize_nonseasonal(data_tables, sample, idx)
             elif ('time_frame2' in filled and 'location2' in filled):
                 # (3.1) Four data tables.
                 data_tables = self._retrieve_four_data_tables(sample)
-                vis_outputs = self.visualize_nonseasonal(data_tables, sample, idx)
+                vis_outputs, title = self.visualize_nonseasonal(data_tables, sample, idx)
             else:
                 raise ValueError("Combination of filled values not implemented.")
 
@@ -168,7 +171,7 @@ class BenchmarkDatasetGenerator:
                 qa[f"latlong{i}"] = data_tables[f"table{i}"][1]  # Extract lat/long
 
         # Print QA results if verbose mode is enabled
-        utils.print_and_save_qa(qa, self.radius, verbose=self.verbose)
+        utils.print_and_save_qa(qa, title, self.radius, verbose=self.verbose)
 
     # ---------------------------
     # Data retrieval helper
@@ -329,6 +332,7 @@ class BenchmarkDatasetGenerator:
                     center_lat=tbl[1][0], center_lon=tbl[1][1],
                     size_km=self.radius, output_path=f"heatmap_{key}", verbose=self.verbose
                 )
+            title = [title1, title2]
         elif len(data_tables) == 4:
             title1 = f"{filled.get('location1')} in {filled.get('time_frame1')}"
             title2 = f"{filled.get('location1')} in {filled.get('time_frame2')}"
@@ -344,7 +348,8 @@ class BenchmarkDatasetGenerator:
                     center_lat=tbl[1][0], center_lon=tbl[1][1],
                     size_km=self.radius, output_path=f"heatmap_{key}", verbose=self.verbose
                 )
-        return vis_outputs
+            title = [title1, title2, title3, title4]
+        return vis_outputs, title
 
     def visualize_seasonal(self, data_tables, sample, idx, eight=False):
         """
@@ -399,7 +404,7 @@ class BenchmarkDatasetGenerator:
                         center_lat=tbl[1][0], center_lon=tbl[1][1],
                         size_km=self.radius, output_path=f"heatmap_table{i}", verbose=self.verbose
                     )
-        return vis_outputs
+        return vis_outputs, title
 
     def merge_visualizations(self, vis_outputs, template, question_dir):
         """

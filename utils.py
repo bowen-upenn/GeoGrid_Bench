@@ -503,7 +503,23 @@ def flatten_answers(answer_dict):
     return rows
 
 
-def print_and_save_qa(qa, radius, csv_file='output/qa_data.csv', verbose=False):
+def generate_multiple_choice(correct_answer, incorrect_answers):
+    # Combine correct and incorrect answers
+    all_answers = incorrect_answers + [correct_answer]
+
+    # Shuffle the answers randomly
+    random.shuffle(all_answers)
+
+    # Assign labels (a) to (d)
+    labeled_answers = [f"({chr(97 + i)}) {ans}" for i, ans in enumerate(all_answers)]
+
+    # Find the correct answer's letter (a, b, c, d)
+    correct_letter = chr(97 + all_answers.index(correct_answer))
+
+    return labeled_answers, correct_letter
+
+
+def print_and_save_qa(qa, titles, radius, csv_file='output/qa_data.csv', verbose=False):
     question, question_dir, template, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 \
         = qa['question'], qa['question_dir'], qa['template'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
 
@@ -595,15 +611,17 @@ def print_and_save_qa(qa, radius, csv_file='output/qa_data.csv', verbose=False):
     for rid, row in enumerate(correct_rows):
         if row['Answer'] is None or len(row['Answer']) == 0:
             continue
+        all_options, correct_letter = generate_multiple_choice(row['Answer'], incorrect_answer[row['Type']][row['Subtype']])
         final_rows.append({
             'Question ID': question_dir.split("/")[-1] + '_radius' + str(int(radius)) + '_type' + str(rid),
             'Question': rephrased_question,
             'Image Paths': json.dumps(image_paths),
             'Type': row['Type'],
             'Subtype': row['Subtype'],
-            'Radius': radius,
-            'Correct Answer': row['Answer'],
-            'Incorrect Answer': incorrect_answer[row['Type']][row['Subtype']],
+            'Radius': int(radius),
+            'Correct Answer': correct_letter,
+            'All Options': all_options,
+            'Data Titles': titles,
             **data_vars,
             'Filled Values': json.dumps(filled_values),
             'Template Question': template,

@@ -9,15 +9,6 @@
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
-        "question": "What is the spatial variation of maximum annual temperature in New York, New York, United States during historical period?",
-        "filled_values": {
-            "climate_variable1": "maximum annual temperature",
-            "location1": "New York, New York, United States",
-            "time_frame1": "historical period"
-        },
-        "template": "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?"
-    },
-    {
         "question": "How has maximum annual temperature changed between historical period and mid-century period (RCP4.5) in the New York, New York, United States?",
         "filled_values": {
             "climate_variable1": "maximum annual temperature",

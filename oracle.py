@@ -236,50 +236,225 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, heatmap_
 
     elif template == "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?":
         """
-        This oracle code calculates the spatial variation of the data and identifies the region with the largest spatial variation.
+        This oracle code calculates the overall spatial variation across the map by dividing the data into 9 regions
+        and analyzing the trend along a consistent path (e.g., upper-left -> center -> lower-right, or upper-left -> mid-left -> lower-left).
+        It verifies that the intermediate region’s value lies between the start and end values.
         """
         # Flip the matrix upside down to match the map orientation
         data_var1 = data_var1.iloc[::-1]
         regions = divide_into_regions(data_var1)
 
-        # Identify the region with the highest spatial variation
-        spatial_var = [calculate_spatial_variations(region_df) if region_df.isna().sum().sum() < region_df.size / 2 else -np.inf for region_df in regions.values()]
-        max_region_var = list(regions.keys())[np.argmax(spatial_var)]
-        other_regions_var = [region for region in regions.keys() if region != max_region_var]
-        other_regions_var = np.random.choice(other_regions_var, 3)
-        correct_place_names_var, incorrect_place_names_var = extract_place_names(question_dir, ppocr, llm, template, max_region_var, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
+        # Mapping for region positions in a 3x3 grid
+        positions = {
+            "upper-left": (0, 0), "upper-mid": (0, 1), "upper-right": (0, 2),
+            "mid-left": (1, 0), "center": (1, 1), "mid-right": (1, 2),
+            "lower-left": (2, 0), "lower-mid": (2, 1), "lower-right": (2, 2)
+        }
+
+        # Compute the average (mean) value for each region if valid (less than 50% NaNs)
+        region_means = {}
+        for region_name, region_df in regions.items():
+            if region_df.isna().sum().sum() < region_df.size / 2:
+                region_means[region_name] = region_df.mean().mean()
+            else:
+                region_means[region_name] = np.nan
+
+        # Filter out regions with insufficient data
+        valid_regions = {name: val for name, val in region_means.items() if not np.isnan(val)}
+
+        # If no region is valid, then we can't determine a trend.
+        if len(valid_regions) == 0:
+            overall_trend = "No valid data to determine spatial variation."
+            start_region, end_region = None, None
+        else:
+            # Look for candidate region pairs that are aligned (horizontal, vertical, or diagonal)
+            candidate_pairs = []
+            valid_region_names = list(valid_regions.keys())
+            for i in range(len(valid_region_names)):
+                for j in range(i + 1, len(valid_region_names)):
+                    r1_name = valid_region_names[i]
+                    r2_name = valid_region_names[j]
+                    r1_val = valid_regions[r1_name]
+                    r2_val = valid_regions[r2_name]
+                    r1_pos = positions[r1_name]
+                    r2_pos = positions[r2_name]
+                    # Only consider pairs that are aligned in a straight line with a middle region
+                    if r1_pos[0] == r2_pos[0] and abs(r1_pos[1] - r2_pos[1]) == 2:
+                        # Horizontal pair: middle region is at same row, col = average
+                        mid_pos = (r1_pos[0], (r1_pos[1] + r2_pos[1]) // 2)
+                    elif r1_pos[1] == r2_pos[1] and abs(r1_pos[0] - r2_pos[0]) == 2:
+                        # Vertical pair: middle region is at same col, row = average
+                        mid_pos = ((r1_pos[0] + r2_pos[0]) // 2, r1_pos[1])
+                    elif abs(r1_pos[0] - r2_pos[0]) == 2 and abs(r1_pos[1] - r2_pos[1]) == 2:
+                        # Diagonal pair: middle is the center of the two
+                        mid_pos = ((r1_pos[0] + r2_pos[0]) // 2, (r1_pos[1] + r2_pos[1]) // 2)
+                    else:
+                        continue  # skip if they are not two steps apart in a line
+
+                    # Find the region corresponding to the middle position
+                    mid_region = None
+                    for name, pos in positions.items():
+                        if pos == mid_pos:
+                            mid_region = name
+                            break
+
+                    # Check that the middle region has valid data
+                    if mid_region not in valid_regions:
+                        continue
+
+                    mid_val = valid_regions[mid_region]
+                    # Check if the trend from r1 -> mid -> r2 is consistent.
+                    if r1_val < r2_val and (r1_val < mid_val < r2_val):
+                        candidate_pairs.append((r1_name, mid_region, r2_name, r2_val - r1_val))
+                    elif r1_val > r2_val and (r1_val > mid_val > r2_val):
+                        candidate_pairs.append((r1_name, mid_region, r2_name, r1_val - r2_val))
+                    # Also check in reverse order (in case order in candidate_pairs matters)
+                    # Note: This is redundant because the absolute difference is computed.
+                    # So we need not add both (r1, mid, r2) and (r2, mid, r1).
+
+            # If no candidate pair meets the criteria, then no clear trend is present.
+            if not candidate_pairs:
+                overall_trend = "No obvious spatial variations."
+                start_region, end_region = None, None
+            else:
+                # Select the candidate pair with the largest difference.
+                candidate_pairs.sort(key=lambda x: x[3], reverse=True)
+                best_candidate = candidate_pairs[0]
+                start_region, mid_region, end_region, diff = best_candidate
+
+                # Define overall trend text based on increasing or decreasing values.
+                if valid_regions[start_region] < valid_regions[end_region]:
+                    overall_trend = f"The data values consistently increase from {start_region} via {mid_region} to {end_region}."
+                else:
+                    overall_trend = f"The data values consistently decrease from {start_region} via {mid_region} to {end_region}."
+
+            # Also define a threshold for overall significant variation (e.g., 10% of the maximum value difference)
+            if candidate_pairs and diff < 0.1 * (max(valid_regions.values()) if max(valid_regions.values()) != 0 else 1):
+                overall_trend = "No obvious spatial variations."
+                start_region, end_region = None, None
+
+        # Extract place names from the OCR based on the start and end regions if a trend is found
+        print('start_region', start_region, 'end_region', end_region)
+        if start_region is not None and end_region is not None:
+            correct_place_names_var, incorrect_place_names_var = extract_place_names(
+                question_dir, ppocr, llm, template, (start_region, end_region), angle1, heatmap_rect1,
+                overlay1, overlay_path1, location_description1, verbose=verbose
+            )
+            # Sample indices from the start region as representative for the correct answer
+            top_k_indices_correct_var = sample_row_col_indices_from_region(regions, start_region, k=2, incorrect=False)
+            # For incorrect answers, randomly choose three regions excluding start and end (if possible)
+            other_regions = [region for region in regions.keys() if region not in [start_region, end_region]]
+            if len(other_regions) >= 3:
+                other_regions_var = np.random.choice(other_regions, 3, replace=False)
+            else:
+                other_regions_var = other_regions
+            top_k_indices_incorrect_var = [
+                sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_var
+            ]
+        else:
+            correct_place_names_var = None
+            incorrect_place_names_var = None
+            top_k_indices_correct_var = "N/A"
+            top_k_indices_incorrect_var = ["N/A", "N/A", "N/A"]
 
         # Prepare answers
-        top_k_indices_correct_var = sample_row_col_indices_from_region(regions, max_region_var, k=2, incorrect=False)
-        top_k_indices_incorrect_var = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_var]
-
         correct_answer = {
             'variation': {
-                'region': f"The region around {max_region_var} experienced the largest spatial variation.",
-                'indices': f"The region around blocks {top_k_indices_correct_var} experienced the largest spatial variation.",
-                'places': f"The region around the textual marks {correct_place_names_var} on the map experienced the largest spatial variation." if correct_place_names_var is not None else None,
+                'trend': overall_trend,
+                'indices': (
+                    f"The trend is reflected from blocks {top_k_indices_correct_var}."
+                    if overall_trend not in ["No valid data to determine spatial variation.", "No obvious spatial variations."]
+                    else overall_trend
+                ),
+                'places': (
+                    f"The trend is marked by the textual marks {correct_place_names_var} on the map."
+                    if correct_place_names_var is not None and overall_trend not in ["No valid data to determine spatial variation.", "No obvious spatial variations."]
+                    else overall_trend
+                ),
             },
         }
         incorrect_answers = {
             'variation': {
-                'region': [
-                    f"The region around {other_regions_var[0]} experienced the largest spatial variation.",
-                    f"The region around {other_regions_var[1]} experienced the largest spatial variation.",
-                    f"The region around {other_regions_var[2]} experienced the largest spatial variation.",
+                'trend': [
+                    (
+                        f"An increasing trend from {other_regions_var[0]} to {other_regions_var[1]}."
+                        if overall_trend not in ["No valid data to determine spatial variation.", "No obvious spatial variations."]
+                        else overall_trend
+                    ),
+                    (
+                        f"A decreasing trend from {other_regions_var[1]} to {other_regions_var[2]}."
+                        if overall_trend not in ["No valid data to determine spatial variation.", "No obvious spatial variations."]
+                        else overall_trend
+                    ),
+                    (
+                        "No clear trend detected."
+                        if overall_trend not in ["No valid data to determine spatial variation.", "No obvious spatial variations."]
+                        else overall_trend
+                    ),
                 ],
                 'indices': [
-                    f"The region around blocks {top_k_indices_incorrect_var[0]} experienced the largest spatial variation.",
-                    f"The region around blocks {top_k_indices_incorrect_var[1]} experienced the largest spatial variation.",
-                    f"The region around blocks {top_k_indices_incorrect_var[2]} experienced the largest spatial variation.",
-                ],
-                'places': [
-                    f"The region around the textual marks {incorrect_place_names_var[0]} on the map experienced the largest spatial variation.",
-                    f"The region around the textual marks {incorrect_place_names_var[1]} on the map experienced the largest spatial variation.",
-                    f"The region around the textual marks {incorrect_place_names_var[2]} on the map experienced the largest spatial variation.",
-                ] if incorrect_place_names_var is not None else None,
+                    f"The trend is reflected in blocks {sample_row_col_indices_from_region(regions, other_regions_var[0], k=2, incorrect=True)}.",
+                    f"The trend is reflected in blocks {sample_row_col_indices_from_region(regions, other_regions_var[1], k=2, incorrect=True)}.",
+                    f"The trend is reflected in blocks {sample_row_col_indices_from_region(regions, other_regions_var[2], k=2, incorrect=True)}.",
+                ] if len(other_regions_var) >= 3 else "N/A",
+                'places': (
+                    [
+                        f"The trend is marked by the textual marks {incorrect_place_names_var[0]} on the map.",
+                        f"The trend is marked by the textual marks {incorrect_place_names_var[1]} on the map.",
+                        f"The trend is marked by the textual marks {incorrect_place_names_var[2]} on the map.",
+                    ]
+                    if incorrect_place_names_var is not None else None
+                ),
             },
         }
         return correct_answer, incorrect_answers
+
+    # elif template == "What is the spatial variation of {climate_variable1} in {location1} during {time_frame1}?":
+    #     """
+    #     This oracle code calculates the spatial variation of the data and identifies the region with the largest spatial variation.
+    #     """
+    #     # Flip the matrix upside down to match the map orientation
+    #     data_var1 = data_var1.iloc[::-1]
+    #     regions = divide_into_regions(data_var1)
+    #
+    #     # Identify the region with the highest spatial variation
+    #     spatial_var = [calculate_spatial_variations(region_df) if region_df.isna().sum().sum() < region_df.size / 2 else -np.inf for region_df in regions.values()]
+    #     max_region_var = list(regions.keys())[np.argmax(spatial_var)]
+    #     other_regions_var = [region for region in regions.keys() if region != max_region_var]
+    #     other_regions_var = np.random.choice(other_regions_var, 3)
+    #     correct_place_names_var, incorrect_place_names_var = extract_place_names(question_dir, ppocr, llm, template, max_region_var, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1, verbose=verbose)
+    #
+    #     # Prepare answers
+    #     top_k_indices_correct_var = sample_row_col_indices_from_region(regions, max_region_var, k=2, incorrect=False)
+    #     top_k_indices_incorrect_var = [sample_row_col_indices_from_region(regions, region, k=2, incorrect=True) for region in other_regions_var]
+    #
+    #     correct_answer = {
+    #         'variation': {
+    #             'region': f"The region around {max_region_var} experienced the largest spatial variation.",
+    #             'indices': f"The region around blocks {top_k_indices_correct_var} experienced the largest spatial variation.",
+    #             'places': f"The region around the textual marks {correct_place_names_var} on the map experienced the largest spatial variation." if correct_place_names_var is not None else None,
+    #         },
+    #     }
+    #     incorrect_answers = {
+    #         'variation': {
+    #             'region': [
+    #                 f"The region around {other_regions_var[0]} experienced the largest spatial variation.",
+    #                 f"The region around {other_regions_var[1]} experienced the largest spatial variation.",
+    #                 f"The region around {other_regions_var[2]} experienced the largest spatial variation.",
+    #             ],
+    #             'indices': [
+    #                 f"The region around blocks {top_k_indices_incorrect_var[0]} experienced the largest spatial variation.",
+    #                 f"The region around blocks {top_k_indices_incorrect_var[1]} experienced the largest spatial variation.",
+    #                 f"The region around blocks {top_k_indices_incorrect_var[2]} experienced the largest spatial variation.",
+    #             ],
+    #             'places': [
+    #                 f"The region around the textual marks {incorrect_place_names_var[0]} on the map experienced the largest spatial variation.",
+    #                 f"The region around the textual marks {incorrect_place_names_var[1]} on the map experienced the largest spatial variation.",
+    #                 f"The region around the textual marks {incorrect_place_names_var[2]} on the map experienced the largest spatial variation.",
+    #             ] if incorrect_place_names_var is not None else None,
+    #         },
+    #     }
+    #     return correct_answer, incorrect_answers
 
 
     elif template == "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?":
