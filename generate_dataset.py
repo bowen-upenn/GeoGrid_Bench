@@ -64,8 +64,8 @@ class BenchmarkDatasetGenerator:
         samples = self.load_samples()
         total = self.num_samples if self.num_samples > 0 else len(samples)
         for idx, sample in tqdm(enumerate(samples), total=total):
-            # if idx != 0:
-            #     continue
+            if idx != 2:
+                continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
             self.process_sample(sample, idx)
@@ -168,8 +168,7 @@ class BenchmarkDatasetGenerator:
                 qa[f"latlong{i}"] = data_tables[f"table{i}"][1]  # Extract lat/long
 
         # Print QA results if verbose mode is enabled
-        if self.verbose:
-            utils.print_qa(qa)
+        utils.print_and_save_qa(qa, self.radius, verbose=self.verbose)
 
     # ---------------------------
     # Data retrieval helper
@@ -482,11 +481,11 @@ class BenchmarkDatasetGenerator:
                                                      get_image(vis_outputs.get('table2'), 2))
 
         if merged_heatmap is not None:
-            merged_heatmap.save(os.path.join(question_dir, 'heatmap_merged.png'))
+            merged_heatmap.save(os.path.join(question_dir, f'heatmap_merged_radius{int(self.radius)}.png'))
         if merged_heatmap_with_text is not None:
-            merged_heatmap_with_text.save(os.path.join(question_dir, 'heatmap_with_text_merged.png'))
+            merged_heatmap_with_text.save(os.path.join(question_dir, f'heatmap_with_text_merged_radius{int(self.radius)}.png'))
         if merged_overlay is not None:
-            merged_overlay.save(os.path.join(question_dir, 'heatmap_overlay_merged.png'))
+            merged_overlay.save(os.path.join(question_dir, f'heatmap_overlay_merged_radius{int(self.radius)}.png'))
         if self.verbose:
             print("Merged visualizations saved.")
 
@@ -510,6 +509,7 @@ if __name__ == "__main__":
     parser.add_argument('--llm', type=str, default="gpt-4o-mini", help="Set LLM model")
     parser.add_argument('--n', type=int, default=-1, help="Number of samples to generate")
     parser.add_argument('--data', type=str, default="test_filled_questions.json", help="Data file")
+    parser.add_argument('--radius', type=float, help="Radius for data retrieval")
     parser.add_argument('--verbose', dest='verbose', action='store_true', help="Enable verbose output")
     cmd_args = parser.parse_args()
     cmd_args.data = os.path.join("data", cmd_args.data)
@@ -518,14 +518,13 @@ if __name__ == "__main__":
     config['models']['llm'] = cmd_args.llm or config['models'].get('llm')
     config['inference']['num_samples'] = cmd_args.n if cmd_args.n is not None else config['inference'].get('n')
     config['inference']['data'] = cmd_args.data or config['inference'].get('data')
+    config['inference']['radius'] = cmd_args.radius if cmd_args.radius is not None else config['inference'].get('radius')
     config['inference']['verbose'] = cmd_args.verbose if cmd_args.verbose is not None else config['inference'].get('verbose', False)
 
     torch.manual_seed(0)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     world_size = torch.cuda.device_count()
-    assert world_size == 1, "Only one GPU is supported."
-    print("Device:", device)
-    print("Using", world_size, "GPU(s)")
+    assert world_size == 1
 
     generator = BenchmarkDatasetGenerator(config)
     generator.generate_dataset()

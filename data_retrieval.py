@@ -232,53 +232,6 @@ def retrieve_data_from_location(variable, location_description, time_period, llm
     return data, crossmodel_indices, latlong, data_df_geo, time_period, cell_geometries
 
 
-    # # Place numerical values at the correct location in black
-    # for _, row in data_df_geo.iterrows():
-    #     geometry = row['geometry']
-    #     if geometry.is_empty:
-    #         continue
-    #
-    #     centroid = geometry.centroid
-    #     x_center, y_center = centroid.x, centroid.y
-    #     lon, lat = transformer.transform(x_center, y_center)  # Convert projection
-    #
-    #     value = row[col_name]
-    #     folium.Marker(
-    #         location=[lat, lon],
-    #         icon=folium.DivIcon(
-    #             html=f'<div style="font-size: 10px; color: black;">{value:.2f}</div>'
-    #         )
-    #     ).add_to(m)
-
-
-
-# def retrieve_data_from_location(variable, location_description, time_period, llm, geometry, radius=36, verbose=False):
-#     """
-#     This function retrieves the tabular data of the location described in the description within a radius of 36 km.
-#     """
-#     # Convert the format of arguments
-#     data_filename = utils.climate_variables[variable]
-#     time_period = utils.full_time_frames[variable][time_period]
-#
-#     # Load the grid cells data
-#     grid_cells_gdf, grid_cells_crs, data_df = initialize_data(data_filename)
-#
-#     # Retrieve the latitude and longitude from the response
-#     latlong = get_lat_long(location_description, llm)
-#     lat, lon = latlong[0], latlong[1]
-#
-#     # Retrieve the crossmodel indices in the database
-#     intersecting_cells, crossmodel_indices, cell_geometries = retrieve_crossmodels_within_radius(lat, lon, grid_cells_gdf, grid_cells_crs, geometry, radius, verbose=verbose)
-#
-#     # Retrieve the data from the database using the crossmodel indices
-#     data = data_df[data_df['Crossmodel'].isin(intersecting_cells['Crossmodel'])]
-#     data = data[time_period].values
-#
-#     if verbose:
-#         print(data)
-#     return data, crossmodel_indices, latlong, data_df, time_period, cell_geometries
-
-
 if __name__ == "__main__":
     # Command-line argument parsing
     parser = argparse.ArgumentParser(description='Command line arguments')

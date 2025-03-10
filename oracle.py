@@ -98,9 +98,10 @@ def extract_place_names(question_dir, ppocr, llm, template, correct_region, angl
         red_set, blue_set = ocr.classify_bounding_boxes_by_color(llm, overlay1, ocr_results, location_description1)
 
         # find the intersection between names in the correct region and names in the red_set
-        print('red_set', red_set, "correct_region", correct_region, "names_in_regions", names_in_regions[correct_region])
         red_set = utils.match_tolerant_sets(red_set, names_in_regions[correct_region])
-        print('matched red set', red_set)
+        if verbose:
+            print('red_set', red_set, "correct_region", correct_region, "names_in_regions", names_in_regions[correct_region])
+            print('matched red set', red_set)
         # red_set = list(set(names_in_regions[correct_region]) & set(red_set))
 
         correct_answer_place_names, incorrect_answers_place_names = ocr.randomly_sample_place_names(red_set, blue_set, invalid_names)
@@ -981,8 +982,8 @@ def oracle_codes(question_dir, ppocr, llm, template, data_var1, angle1, heatmap_
                 region_changes.append((region_name, change))
                 region_changes_percent.append((region_name, percent))
 
-        print('diff_table', diff_table)
-        print('region_changes', region_changes)
+        # print('diff_table', diff_table)
+        # print('region_changes', region_changes)
 
         # Analyze overall trend
         max_region = max(region_changes, key=lambda x: abs(x[1]))[0]

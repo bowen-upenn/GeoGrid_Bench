@@ -443,12 +443,13 @@ def visualize_grids(question_dir, data_df, matrix, title, time_period, cell_geom
     # heatmap, colormap, norm = visualize_heatmap(matrix, title, color_norm, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
     # heatmap = visualize_heatmap(data_df, time_period, cell_geometries, color_norm, title, output_path=os.path.join(question_dir, f"{output_path}.png"), verbose=verbose)
     heatmap, angle, heatmap_rect = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
-                                output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=False, verbose=verbose)
+                                output_path=os.path.join(question_dir, f"{output_path}_radius{int(size_km)}.png"), add_text=False, verbose=verbose)
     heatmap_with_text, _, _ = visualize_heatmap(data_df, matrix, title, time_period, cell_geometries, color_norm, center_lat, center_lon, size_km, alpha=True,
-                                output_path=os.path.join(question_dir, f"{output_path}.png"), add_text=True, verbose=verbose)
+                                output_path=os.path.join(question_dir, f"{output_path}_radius{int(size_km)}.png"), add_text=True, verbose=verbose)
 
     # Draw the final image with transparency on maps
-    overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}.png"
+    overlay_path = f"{output_path[:-1]}_overlay{output_path[-1]}_radius{int(size_km)}.png"
+    # print('overlay_path', overlay_path)
     overlay, overlay_width, overlay_height = overlay_heatmap_on_map(data_df, matrix, title, time_period, cell_geometries,
                                                         color_norm, center_lat, center_lon, size_km, alpha=True, output_path=os.path.join(question_dir, overlay_path), verbose=verbose)
 

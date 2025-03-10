@@ -503,7 +503,7 @@ def flatten_answers(answer_dict):
     return rows
 
 
-def print_qa(qa, csv_file='output/qa_data.csv'):
+def print_and_save_qa(qa, radius, csv_file='output/qa_data.csv', verbose=False):
     question, question_dir, template, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 \
         = qa['question'], qa['question_dir'], qa['template'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']
 
@@ -516,56 +516,66 @@ def print_qa(qa, csv_file='output/qa_data.csv'):
     data_var8 = qa['data_var8'] if 'data_var8' in qa else None
 
     image_paths = [
-        question_dir + ('/heatmap_merged.png' if data_var2 is not None else 'heatmap1.png'),
-        question_dir + ('/heatmap_with_text_merged.png' if data_var2 is not None else 'heatmap_with_text1.png'),
-        question_dir + ('/heatmap_overlay_merged.png' if data_var2 is not None else 'heatmap_overlay1.png')
+        question_dir + (f'/heatmap_merged_{radius}.png' if data_var2 is not None else f'/heatmap1_{radius}.png'),
+        question_dir + (f'/heatmap_with_text_merged_{radius}.png' if data_var2 is not None else f'/heatmap_with_text1_{radius}.png'),
+        question_dir + (f'/heatmap_overlay_merged_{radius}.png' if data_var2 is not None else f'/heatmap_overlay1_{radius}.png')
     ]
 
-    print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
-    print(question)
-    print(f'{Colors.OKGREEN}Rephrased question:{Colors.ENDC}')
-    print(rephrased_question)
-    print(f'{Colors.OKGREEN}Filled values:{Colors.ENDC}')
-    print(filled_values)
-    print(f'{Colors.OKGREEN}Latlong1:{Colors.ENDC}')
-    print(latlong1)
+    if verbose:
+        print(f'{Colors.OKGREEN}Question:{Colors.ENDC}')
+        print(question)
+        print(f'{Colors.OKGREEN}Rephrased question:{Colors.ENDC}')
+        print(rephrased_question)
+        print(f'{Colors.OKGREEN}Filled values:{Colors.ENDC}')
+        print(filled_values)
+        print(f'{Colors.OKGREEN}Latlong1:{Colors.ENDC}')
+        print(latlong1)
 
-    print(f'{Colors.OKGREEN}Data 1:{Colors.ENDC}')
+        print(f'{Colors.OKGREEN}Data 1:{Colors.ENDC}')
     data_var1 = data_var1.iloc[::-1]
-    print(data_var1)
+    if verbose:
+        print(data_var1)
     if data_var2 is not None:
         data_var2 = data_var2.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
-        print(data_var2)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 2:{Colors.ENDC}')
+            print(data_var2)
     if data_var3 is not None:
         data_var3 = data_var3.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 3:{Colors.ENDC}')
-        print(data_var3)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 3:{Colors.ENDC}')
+            print(data_var3)
     if data_var4 is not None:
         data_var4 = data_var4.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 4:{Colors.ENDC}')
-        print(data_var4)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 4:{Colors.ENDC}')
+            print(data_var4)
     if data_var5 is not None:
         data_var5 = data_var5.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 5:{Colors.ENDC}')
-        print(data_var5)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 5:{Colors.ENDC}')
+            print(data_var5)
     if data_var6 is not None:
         data_var6 = data_var6.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 6:{Colors.ENDC}')
-        print(data_var6)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 6:{Colors.ENDC}')
+            print(data_var6)
     if data_var7 is not None:
         data_var7 = data_var7.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 7:{Colors.ENDC}')
-        print(data_var7)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 7:{Colors.ENDC}')
+            print(data_var7)
     if data_var8 is not None:
         data_var8 = data_var8.iloc[::-1]
-        print(f'{Colors.OKGREEN}Data 8:{Colors.ENDC}')
-        print(data_var8)
+        if verbose:
+            print(f'{Colors.OKGREEN}Data 8:{Colors.ENDC}')
+            print(data_var8)
 
-    print(f'{Colors.OKGREEN}Correct answers:{Colors.ENDC}')
-    print(json.dumps(correct_answer, indent=4))
-    print(f'{Colors.OKGREEN}Incorrect answers:{Colors.ENDC}')
-    print(json.dumps(incorrect_answer, indent=4))
+    if verbose:
+        print(f'{Colors.OKGREEN}Correct answers:{Colors.ENDC}')
+        print(json.dumps(correct_answer, indent=4))
+        print(f'{Colors.OKGREEN}Incorrect answers:{Colors.ENDC}')
+        print(json.dumps(incorrect_answer, indent=4))
 
     # Prepare row for CSV
     data_vars = {
@@ -580,16 +590,18 @@ def print_qa(qa, csv_file='output/qa_data.csv'):
     }
 
     correct_rows = flatten_answers(correct_answer)
-
     final_rows = []
 
     for rid, row in enumerate(correct_rows):
+        if row['Answer'] is None or len(row['Answer']) == 0:
+            continue
         final_rows.append({
-            'Question ID': question_dir.split("/")[-1] + '_' + str(rid),
+            'Question ID': question_dir.split("/")[-1] + '_radius' + str(int(radius)) + '_type' + str(rid),
             'Question': rephrased_question,
             'Image Paths': json.dumps(image_paths),
             'Type': row['Type'],
             'Subtype': row['Subtype'],
+            'Radius': radius,
             'Correct Answer': row['Answer'],
             'Incorrect Answer': incorrect_answer[row['Type']][row['Subtype']],
             **data_vars,
@@ -600,6 +612,21 @@ def print_qa(qa, csv_file='output/qa_data.csv'):
 
     df = pd.DataFrame(final_rows)
     df.to_csv(csv_file, mode='a', index=False, header=not os.path.exists(csv_file))
+
+    # Remove intermediate png files
+    def is_valid_merged_file(filename):
+        parts = filename.rsplit("_", 2)  # Split from the right, max 2 splits
+        return filename.endswith("_merged.png") or parts[1] == "merged"
+
+    has_merged_file = any(is_valid_merged_file(file) for file in os.listdir(question_dir))
+    # print('question_dir', question_dir, 'has_merged_file', has_merged_file)
+    if has_merged_file:
+        for file in os.listdir(question_dir):
+            if file.endswith(".png") and not is_valid_merged_file(file):
+                file_path = os.path.join(question_dir, file)
+                os.remove(file_path)  # Delete the file
+                if verbose:
+                    print(f"Deleted {file_path}")
 
 
 if __name__ == '__main__':
