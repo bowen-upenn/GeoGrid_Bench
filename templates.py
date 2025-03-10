@@ -282,7 +282,7 @@ def generate_all_combinations(cmd_args, template_question_manager, location_pick
         for combination in variable_combinations:
             if cmd_args.max != -1 and sum(len(q_list) for q_list in template_questions.values()) >= cmd_args.max:
                 break
-            if len(template_questions[question]) >= 1000:  # Limit to 1000 per template
+            if len(template_questions[question]) >= 200:  # Limit to 200 per template
                 break
 
             # Use the combination directly since it is already a dictionary of filled values.

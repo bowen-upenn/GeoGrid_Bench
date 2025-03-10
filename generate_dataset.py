@@ -64,8 +64,8 @@ class BenchmarkDatasetGenerator:
         samples = self.load_samples()
         total = self.num_samples if self.num_samples > 0 else len(samples)
         for idx, sample in tqdm(enumerate(samples), total=total):
-            if idx != 2:
-                continue
+            # if idx != 2:
+            #     continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
             self.process_sample(sample, idx)
