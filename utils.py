@@ -514,7 +514,7 @@ def generate_multiple_choice(correct_answer, incorrect_answers):
     labeled_answers = [f"({chr(97 + i)}) {ans}" for i, ans in enumerate(all_answers)]
 
     # Find the correct answer's letter (a, b, c, d)
-    correct_letter = chr(97 + all_answers.index(correct_answer))
+    correct_letter = f"({chr(97 + all_answers.index(correct_answer))})"
 
     return labeled_answers, correct_letter
 
