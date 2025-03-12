@@ -41,6 +41,8 @@ class QueryLLM:
             prompt = prompts.prompt_to_rephrase_question(content)
         elif step == 'filter_names':
             prompt = prompts.prompt_to_filter_names(content)
+        elif step == 'inference':
+            prompt = content
         else:
             raise ValueError(f'Invalid step: {step}')
 
@@ -49,7 +51,7 @@ class QueryLLM:
                 model=self.args['models']['llm'],
                 messages=[{"role": "user",
                            "content": prompt}],
-                max_tokens=300
+                max_tokens=2000
             )
             response = response.choices[0].message.content
             if verbose:
