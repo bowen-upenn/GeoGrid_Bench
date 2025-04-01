@@ -8,6 +8,7 @@ import sys
 import os
 import re
 from tqdm import tqdm
+import base64
 
 from query_llm import QueryLLM
 import utils
@@ -61,7 +62,6 @@ def process_each_row_text(df, llm, mode, verbose=False, result_path=None):
         prompt += "\n\nOptions:\n" + row["All Options"]
 
         # Append additional data (with titles)
-        print('row keys', row.keys())
         try:
             titles = row["Data Titles"]  # Titles shou ld be a JSON array
             if isinstance(titles, str):
@@ -123,7 +123,6 @@ def process_each_row_text(df, llm, mode, verbose=False, result_path=None):
         # Save immediately to the result file if provided.
         with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
             file.write(json.dumps(question_result, ensure_ascii=False) + "\n")  # Append as JSONL
-            print('saved to file', question_result, result_path)
 
     aggregate_results = {
         "overall": {"correct": correct_overall, "total": total_questions},
@@ -132,6 +131,12 @@ def process_each_row_text(df, llm, mode, verbose=False, result_path=None):
         "accuracy_by_radius": accuracy_by_radius
     }
     return aggregate_results
+
+
+# Function to encode the image
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def process_each_row_image(df, llm, verbose=False, result_path=None):
@@ -156,9 +161,15 @@ def process_each_row_image(df, llm, verbose=False, result_path=None):
             total_image_queries += 1
             img_type = image_types[i]
 
+            base64_image = encode_image(image_path)
+
+            prompt = row["Question"]
+            prompt += "\n\nOptions:\n" + row["All Options"]
+            prompt += "Instruction: Analyze this image and answer the question. Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'."
+
             payload = [
-                {"type": "text", "text": "Analyze this image and answer the question. Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'."},
-                {"type": "image_url", "image_url": {"url": image_path}}
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
             ]
 
             if verbose:
@@ -192,7 +203,6 @@ def process_each_row_image(df, llm, verbose=False, result_path=None):
             }
 
             # Save immediately to the result file if provided.
-            print('question_result', question_result)
             with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
                 file.write(json.dumps(image_result, ensure_ascii=False) + "\n")  # Append as JSONL
 
@@ -231,7 +241,7 @@ def main():
     modality = ["text", "code", "image"] if args.modality == "all" else [args.modality]
 
     if args.clean and os.path.exists(args.result_path):
-        os.remove(result_path)  # Remove the file
+        os.remove(args.result_path)  # Remove the file
 
     for mode in modality:
         print(f"\n********** Running mode: {mode} **********")
