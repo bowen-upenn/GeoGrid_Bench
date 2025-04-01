@@ -2,11 +2,11 @@ models:
     llm: "gpt-4o-mini"
 inference:
     verbose: False
-    mode: text
+    modality: 'text'
     data: 'test_filled_questions.json'
     num_samples: -1
     geometry: 'square'
     radius: 64
     output_dir: 'output/'
-    csv: 'output/qa_data.csv'
+    question_path: 'output/qa_data.csv'
     save_output_response: True

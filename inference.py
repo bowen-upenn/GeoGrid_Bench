@@ -5,6 +5,7 @@ import openai
 import pandas as pd
 import yaml
 import sys
+import os
 import re
 from tqdm import tqdm
 
@@ -43,7 +44,7 @@ def update_accuracy(is_correct, counters, key):
         counters[key]["correct"] += 1
 
 
-def process_each_row_text(df, llm, mode, verbose=False):
+def process_each_row_text(df, llm, mode, verbose=False, result_path=None):
     total_questions = 0
     correct_overall = 0
     accuracy_by_type = {}
@@ -51,6 +52,8 @@ def process_each_row_text(df, llm, mode, verbose=False):
     accuracy_by_radius = {}
 
     for index, row in tqdm(df.iterrows(), total=len(df)):
+        if index > 10:
+            break
         total_questions += 1
         prompt = row["Question"]
 
@@ -58,8 +61,11 @@ def process_each_row_text(df, llm, mode, verbose=False):
         prompt += "\n\nOptions:\n" + row["All Options"]
 
         # Append additional data (with titles)
+        print('row keys', row.keys())
         try:
-            titles = row["Titles"]  # Titles should be a JSON array
+            titles = row["Data Titles"]  # Titles shou ld be a JSON array
+            if isinstance(titles, str):
+                titles = [titles]
         except Exception:
             titles = ["Data 1", "Data 2", "Data 3", "Data 4", "Data 5", "Data 6", "Data 7", "Data 8"]
 
@@ -100,21 +106,44 @@ def process_each_row_text(df, llm, mode, verbose=False):
         update_accuracy(is_correct, accuracy_by_subtype, row["Subtype"])
         update_accuracy(is_correct, accuracy_by_radius, row["Radius"])
 
-    return {
+        # Build the per-question result entry.
+        question_result = {
+            "entry_type": "question",
+            "index": index,
+            "modality": mode,
+            "question": row["Question"],
+            "selected_option": selected_option,
+            "correct_answer": correct_answer,
+            "is_correct": is_correct,
+            "type": row["Type"],
+            "subtype": row["Subtype"],
+            "radius": row["Radius"]
+        }
+
+        # Save immediately to the result file if provided.
+        with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
+            file.write(json.dumps(question_result, ensure_ascii=False) + "\n")  # Append as JSONL
+            print('saved to file', question_result, result_path)
+
+    aggregate_results = {
         "overall": {"correct": correct_overall, "total": total_questions},
         "accuracy_by_type": accuracy_by_type,
         "accuracy_by_subtype": accuracy_by_subtype,
         "accuracy_by_radius": accuracy_by_radius
     }
+    return aggregate_results
 
 
-def process_each_row_image(df, llm, verbose=False):
+def process_each_row_image(df, llm, verbose=False, result_path=None):
     total_image_queries = 0
     overall_correct = 0
     image_types = ["heatmap", "heatmap_with_text", "heatmap_overlayed_on_map"]
     accuracy_by_image_type = {img_type: {"total": 0, "correct": 0} for img_type in image_types}
 
     for index, row in tqdm(df.iterrows(), total=len(df)):
+        if index > 10:
+            break
+
         correct_answer = row["Correct Answer"]
         try:
             image_paths = json.loads(row["Image Paths"])
@@ -151,10 +180,27 @@ def process_each_row_image(df, llm, verbose=False):
 
             update_accuracy(is_correct, accuracy_by_image_type, img_type)
 
-    return {
+            # Build the per-image query result entry.
+            image_result = {
+                "entry_type": "image_query",
+                "row_index": index,
+                "image_type": img_type,
+                "image_path": image_path,
+                "selected_option": selected_option,
+                "correct_answer": correct_answer,
+                "is_correct": is_correct
+            }
+
+            # Save immediately to the result file if provided.
+            print('question_result', question_result)
+            with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
+                file.write(json.dumps(image_result, ensure_ascii=False) + "\n")  # Append as JSONL
+
+    aggregate_results = {
         "overall": {"correct": overall_correct, "total": total_image_queries},
         "accuracy_by_image_type": accuracy_by_image_type
     }
+    return aggregate_results
 
 
 def main():
@@ -166,41 +212,49 @@ def main():
         sys.exit(1)
 
     parser = argparse.ArgumentParser(description="Run Q/A from CSV and query LLM.")
-    parser.add_argument("--model", default="gpt-4", help="Model name to use.")
-    parser.add_argument("--mode", choices=["text", "code", "image", "all"], default="text",
+    parser.add_argument("--model", default="gpt-4o", help="Model name to use.")
+    parser.add_argument("--modality", choices=["text", "code", "image", "all"], default="text",
                         help="Specify whether to instruct the model to use text, code, image, or all modes.")
-    parser.add_argument("--csv", default="output/qa_data.csv", help="Path to the CSV file (tab-delimited).")
+    parser.add_argument("--question_path", default="output/qa_data.csv", help="Path to the CSV file.")
+    parser.add_argument("--result_path", default="result/eval_results_gpt-4o_text.jsonl", help="Path to the result file.")
+    parser.add_argument('--clean', dest='clean', action='store_true', help='Remove existing data files and start clean')
     parser.add_argument("--verbose", action="store_true", help="Print verbose output.")
     args = parser.parse_args()
 
     config['models']['llm'] = args.model
-    config['inference']['mode'] = args.mode
-    config['inference']['csv'] = args.csv
+    config['inference']['modality'] = args.modality
+    config['inference']['question_path'] = args.question_path
     config['inference']['verbose'] = args.verbose
 
     llm = QueryLLM(config)
-    df = pd.read_csv(args.csv)
+    df = pd.read_csv(args.question_path)
+    modality = ["text", "code", "image"] if args.modality == "all" else [args.modality]
 
-    final_results = {}
+    if args.clean and os.path.exists(args.result_path):
+        os.remove(result_path)  # Remove the file
 
-    modes = ["text", "code", "image"] if args.mode == "all" else [args.mode]
-
-    for mode in modes:
+    for mode in modality:
         print(f"\n********** Running mode: {mode} **********")
-        if mode in ["text", "code"]:
-            results = process_each_row_text(df, llm, mode, args.verbose)
-            final_results[mode] = results
-        elif mode == "image":
-            results = process_each_row_image(df, llm, args.verbose)
-            final_results[mode] = results
 
-    output_filename = "output/eval_results.json"
-    try:
-        with open(output_filename, "w") as outfile:
-            json.dump(final_results, outfile, indent=4)
-        print(f"\nFinal results saved to {output_filename}")
-    except Exception as e:
-        print("Error saving final results:", e)
+        if mode in ["text", "code"]:
+            results = process_each_row_text(df, llm, mode, args.verbose, result_path=args.result_path)
+            print(f"\nResults for mode '{mode}':")
+        elif mode == "image":
+            results = process_each_row_image(df, llm, args.verbose, result_path=args.result_path)
+        else:
+            continue
+
+        # Save aggregated results immediately as individual JSON objects
+        with open(args.result_path, "a") as outfile:
+            aggregate_entry = {
+                "entry_type": "aggregate",
+                "modality": mode,
+                "result": results
+            }
+            json.dump(aggregate_entry, outfile)
+            outfile.write("\n")
+
+        print(f"\nAggregated results for mode '{mode}' appended to {args.result_path}")
 
 
 if __name__ == "__main__":
