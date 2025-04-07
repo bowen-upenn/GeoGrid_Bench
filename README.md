@@ -5,6 +5,9 @@ We use Python virtual environment. Please run the following commands to create a
     source myenv/bin/activate
     pip install -r requirements.txt
 
+## Data Preparation
+All benchmark data is available on [Google Drive](https://drive.google.com/drive/folders/1Kfs1YHHuTPIJt5OxZktBTtCc2sUIZWHA?usp=sharing). Please download the files and place them in the [data/benchmark/](data/benchmark/) directory. Make sure to unzip ```image_data.zip```. The file ```qa_data.csv``` contains all question–answer pairs in multiple-choice format, along with the corresponding image paths and other metadata for each question.
+
 ## Inference
 Before you begin, create a new file named ```openai_key.txt``` in the root directory. Then, generate your OpenAI [API key](https://platform.openai.com/settings/organization/api-keys) and paste it into the ```openai_key.txt``` file.
 
