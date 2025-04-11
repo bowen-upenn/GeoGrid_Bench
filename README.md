@@ -1,3 +1,12 @@
+## 📊 Benchmark Data
+We release the benchmark data of on [Google Drive](https://drive.google.com/drive/folders/1Kfs1YHHuTPIJt5OxZktBTtCc2sUIZWHA?usp=sharing
+) and [🤗Huggingface](TODO), including question-answer pairs, corresponding images, and other meta data. Please download them and put them under the ```data/benchmark/``` directory.
+The benchmark data is organized into the following subdirectories:
+- data/benchmark/
+  - image_data/
+  - qa_data.csv
+
+
 ## 🔗 Dependencies
 We use Python virtual environment. Please run the following commands to create a virtual environment and install all the requirements:
     
@@ -11,7 +20,6 @@ Google Gemini models have conflicting dependencies with OpenAI models related to
     conda activate geospatial_bench
     pip install -r requirements.txt
     pip install -q -U google-genai
-
 
 ## 🚀 Running Inference on Benchmark Data
 
@@ -69,7 +77,8 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 **Evaluation results** will be automatically saved in the [result/](result/) directory, with filenames that include both the model name and the data modality for easy identification. For example, ```eval_results_gpt-4o_text.json```.
 
 > 💡Note that if you set [START_IDX] to 0, a new result file will be created and the old one will be removed. Otherwise, the script will append new evaluation results to the existing result file.
-
+=======
+You can choose from the following script files: ```run_inference_gpt4o.sh```, ```run_inference_gpt4o_mini.sh```, ```run_inference_o1.sh```, ```run_inference_o1_mini.sh```, ```run_inference_o3_mini.sh```, and ```run_inference_gpt-4.5-preview```. The price of each model is listed [here](https://platform.openai.com/docs/pricing). Inference results will be saved to the [result/](result/) directory automatically.
 
 
 ## Reference
