@@ -484,6 +484,35 @@ def match_tolerant_sets(source_set, target_set, threshold=0.8):
     return matched_names
 
 
+def openai_to_gemini_history(openai_messages):
+    """
+    Convert OpenAI-style messages to Gemini chat history format.
+
+    Args:
+        openai_messages (list of dict): Each dict has "role" and "content".
+
+    Returns:
+        list: Gemini-style history (UserContent and ModelContent instances).
+    """
+    gemini_history = []
+
+    for msg in openai_messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+
+        if not content or role not in {"user", "assistant"}:
+            continue  # Skip unsupported roles or empty content
+
+        part = Part(text=content)
+
+        if role == "user" or role == "system":
+            gemini_history.append(UserContent(parts=[part]))
+        elif role == "assistant":
+            gemini_history.append(ModelContent(parts=[part]))
+
+    return gemini_history
+
+
 def flatten_answers(answer_dict):
     """
     Flattens the nested answer dictionary into a list of rows with additional columns for type and subtype.

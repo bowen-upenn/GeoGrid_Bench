@@ -1,6 +1,6 @@
 myenv/
 __pycache__/
-openai_key.txt
+api_tokens/
 data/climrr/
 *.html
 edge.jpg

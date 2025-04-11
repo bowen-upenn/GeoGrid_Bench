@@ -1,5 +1,6 @@
 models:
     llm: "gpt-4o-mini"
+    use_url: False
 inference:
     verbose: False
     modality: 'text'
@@ -10,3 +11,5 @@ inference:
     output_dir: 'output/'
     question_path: 'output/qa_data.csv'
     save_output_response: True
+    start_idx: 0
+    end_idx: 0
