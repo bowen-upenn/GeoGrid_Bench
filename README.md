@@ -51,7 +51,6 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
   - GPT-4.5: ```inference_gpt_4p5_preview.sh```
   - o3-mini: ```inference_o3_mini.sh```
   - o1: ```inference_o1.sh```
-  - o1-mini: ```inference_o1_mini.sh```
   - GPT-4o: ```inference_gpt_4o.sh```
   - GPT-4o-mini: ```inference_gpt_4o_mini.sh```
 - **[Google Gemini Models](https://ai.google.dev/gemini-api/docs/models)**
