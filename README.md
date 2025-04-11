@@ -1,10 +1,6 @@
 ## 📊 Benchmark Data
 We release the benchmark data of on [Google Drive](https://drive.google.com/drive/folders/1Kfs1YHHuTPIJt5OxZktBTtCc2sUIZWHA?usp=sharing
-) and [🤗Huggingface](TODO), including question-answer pairs, corresponding images, and other meta data. Please download them and put them under the ```data/benchmark/``` directory.
-The benchmark data is organized into the following subdirectories:
-- data/benchmark/
-  - image_data/
-  - qa_data.csv
+) and [🤗Huggingface](TODO), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
 
 
 ## 🔗 Dependencies
