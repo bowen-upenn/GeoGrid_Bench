@@ -60,8 +60,9 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
   - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
-  
-    bash scripts/run_inference_gpt4o.sh [MODALITY] [START_IDX] [END_IDX]
+```bash
+bash scripts/run_inference_gpt4o.sh [MODALITY] [START_IDX] [END_IDX]
+```
 
 - **[MODALITY]** can be one of the following: ```text```, ```code```, or ```image```.
 > 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, and Llama-4-Maverick.
@@ -70,9 +71,9 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 > 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
 
 - If you are using internal OpenAI models accessed by an URL, add `use_url` to the command line. For example:
-  
-    bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
-
+```bash
+bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
+```
 
 **We provide a complete [checklist](scripts/checklist.txt) of all scripts used in our benchmark.**
 
