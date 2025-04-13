@@ -4,16 +4,16 @@ We release the benchmark data of on [Google Drive](https://drive.google.com/driv
 
 
 ## 🔗 Dependencies
-We use Python virtual environment. Please run the following commands to create a virtual environment and install all the requirements:
+We use Conda environment. Please run the following commands to create the environment and install all the requirements:
     
-    python -m venv myenv
-    source myenv/bin/activate
+    conda create -n geospatial python=3.9
+    conda activate geospatial
     pip install -r requirements.txt
 
 Google Gemini models have conflicting dependencies with OpenAI models related to `google-genai` and `httpx` packages. To run Gemini models, we therefore recommend creating a separate Conda environment:
 
-    conda create -n geospatial_bench python=3.9
-    conda activate geospatial_bench
+    conda create -n geospatial_gemini python=3.9
+    conda activate geospatial_gemini
     pip install -r requirements.txt
     pip install -q -U google-genai
 
@@ -44,20 +44,20 @@ Google Gemini models have conflicting dependencies with OpenAI models related to
 ### Step 2 - Running Inference Scripts
 We provide ready-to-use **inference scripts** in the [scripts/](scripts/) directory for evaluating the following models:
 - **[OpenAI Models](https://platform.openai.com/docs/models)**
-  - GPT-4.5: ```inference_gpt_4p5_preview.sh```
-  - o3-mini: ```inference_o3_mini.sh```
-  - o1: ```inference_o1.sh```
-  - GPT-4o: ```inference_gpt_4o.sh```
-  - GPT-4o-mini: ```inference_gpt_4o_mini.sh```
+  - GPT-4.5: ```run_inference_gpt_4p5_preview.sh```
+  - o3-mini: ```run_inference_o3_mini.sh```
+  - o1: ```run_inference_o1.sh```
+  - GPT-4o: ```run_inference_gpt_4o.sh```
+  - GPT-4o-mini: ```run_inference_gpt_4o_mini.sh```
 - **[Google Gemini Models](https://ai.google.dev/gemini-api/docs/models)**
-  - Gemini-2.0-Flash: ```inference_gemini_2p0_flash.sh```
-  - Gemini-1.5-Flash: ```inference_gemini_1p5_flash.sh```
+  - Gemini-2.0-Flash: ```run_inference_gemini_2p0_flash.sh```
+  - Gemini-1.5-Flash: ```run_inference_gemini_1p5_flash.sh```
 - **[Anthropic Claude Models](https://docs.anthropic.com/en/docs/about-claude/models/all-models)**
-  - Claude-3.7-Sonnet: ```inference_claude_3p7_sonnet.sh```
-  - Claude-3.5-Haiku: ```inference_claude_3p5_haiku.sh```
+  - Claude-3.7-Sonnet: ```run_inference_claude_3p7_sonnet.sh```
+  - Claude-3.5-Haiku: ```run_inference_claude_3p5_haiku.sh```
 - **[Meta Llama Models](https://docs.lambda.ai/public-cloud/lambda-inference-api/?_gl=1*1yqhedk*_gcl_aw*R0NMLjE3NDQwOTAyNjIuQ2owS0NRanc3ODJfQmhEakFSSXNBQlR2X0pEWUpQRTRhLXJMY0xjeWZYYUZrRzE4Q196MG0zdjY0cmQtX09FYm5iRHlrek95QWVDVVZxVWFBbnhYRUFMd193Y0I.*_gcl_au*NTQ3OTExNDIzLjE3NDQwOTAyNjE.*_ga*MTA0MjYwNjUyMS4xNzQ0MDkwMjYy*_ga_43EZT1FM6Q*MTc0NDA5MDI2MS4xLjAuMTc0NDA5MDI2MS42MC4wLjY1NjAyNzc2NA..)**
-  - Llama-4-Maverick: ```inference_llama4_maverick.sh```
-  - Llama-3.1-405B: ```inference_llama_3p1_405b.sh```
+  - Llama-4-Maverick: ```run_inference_llama4_maverick.sh```
+  - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
   
@@ -67,7 +67,9 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 > 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, and Llama-4-Maverick.
 
 - **[START_IDX]** and **[END_IDX]** define the range of question indices for inference. The script will run inference starting at [START_IDX] and ending just before [END_IDX] (non-inclusive). 
-> 💡Note that whenever you set [END_IDX] to 0, the script will run inference from [START_IDX] until the end of the dataset.
+> 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
+
+**We provide a complete [checklist](scripts/checklist.txt) of all scripts used in our benchmark.**
 
 ### Step 3 - Saving Inference Results
 

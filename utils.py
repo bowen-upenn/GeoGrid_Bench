@@ -8,6 +8,9 @@ import json
 import difflib
 import os
 
+from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
+from google.genai.types import Part, UserContent, ModelContent
+
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
                      'minimum annual temperature': './data/climrr/AnnualTemperatureMinimum.csv',

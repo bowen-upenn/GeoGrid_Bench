@@ -11,11 +11,11 @@ MODALITY="${1:-all}"
 
 # Get start and end indices from the second and third arguments, default to 0
 START_IDX="${2:-0}"
-END_IDX="${3:-0}"   # If 0 is passed, it will be ignored and the entire dataset will be used
+END_IDX="${3:--1}"   # If -1 is passed, it will be ignored and the entire dataset will be used
 
 # Arguments for the Python script
 MODEL_NAME="gemini-2.0-flash"
-QUESTION_PATH="output/qa_data.csv"
+QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_${MODEL_NAME}_${MODALITY}.jsonl"
 
 # Base command
