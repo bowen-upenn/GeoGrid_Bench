@@ -1,44 +1,44 @@
-bash inference_gpt_4p5_preview.sh text 0 -1 use_url
-bash inference_gpt_4p5_preview.sh code 0 -1 use_url
-bash inference_gpt_4p5_preview.sh image 0 -1 use_url
+bash scripts/inference_gpt_4p5_preview.sh text 0 -1 use_url
+bash scripts/inference_gpt_4p5_preview.sh code 0 -1 use_url
+bash scripts/inference_gpt_4p5_preview.sh image 0 -1 use_url
 
-bash inference_o3_mini.sh text 0 -1 use_url
-bash inference_o3_mini.sh code 0 -1 use_url
+bash scripts/inference_o3_mini.sh text 0 -1 use_url
+bash scripts/inference_o3_mini.sh code 0 -1 use_url
 
-bash inference_o1.sh text 0 -1 use_url
-bash inference_o1.sh code 0 -1 use_url
-bash inference_o1.sh image 0 -1 use_url
+bash scripts/inference_o1.sh text 0 -1 use_url
+bash scripts/inference_o1.sh code 0 -1 use_url
+bash scripts/inference_o1.sh image 0 -1 use_url
 
-bash inference_gpt_4o.sh text 0 -1 use_url
-bash inference_gpt_4o.sh code 0 -1 use_url
-bash inference_gpt_4o.sh image 0 -1 use_url
+bash scripts/inference_gpt_4o.sh text 0 -1 use_url
+bash scripts/inference_gpt_4o.sh code 0 -1 use_url
+bash scripts/inference_gpt_4o.sh image 0 -1 use_url
 
-bash inference_gpt_4o_mini.sh text 0 -1 use_url
-bash inference_gpt_4o_mini.sh code 0 -1 use_url
-bash inference_gpt_4o_mini.sh image 0 -1 use_url
+bash scripts/inference_gpt_4o_mini.sh text 0 -1 use_url
+bash scripts/inference_gpt_4o_mini.sh code 0 -1 use_url
+bash scripts/inference_gpt_4o_mini.sh image 0 -1 use_url
 
-bash inference_gemini_2p0_flash.sh text 0 -1
-bash inference_gemini_2p0_flash.sh code 0 -1
-bash inference_gemini_2p0_flash.sh image 0 -1
+bash scripts/inference_gemini_2p0_flash.sh text 0 -1
+bash scripts/inference_gemini_2p0_flash.sh code 0 -1
+bash scripts/inference_gemini_2p0_flash.sh image 0 -1
 
-bash inference_gemini_1p5_flash.sh text 0 -1
-bash inference_gemini_1p5_flash.sh code 0 -1
-bash inference_gemini_1p5_flash.sh image 0 -1
+bash scripts/inference_gemini_1p5_flash.sh text 0 -1
+bash scripts/inference_gemini_1p5_flash.sh code 0 -1
+bash scripts/inference_gemini_1p5_flash.sh image 0 -1
 
-bash inference_claude_3p7_sonnet.sh text 0 -1
-bash inference_claude_3p7_sonnet.sh code 0 -1
-bash inference_claude_3p7_sonnet.sh image 0 -1
+bash scripts/inference_claude_3p7_sonnet.sh text 0 -1
+bash scripts/inference_claude_3p7_sonnet.sh code 0 -1
+bash scripts/inference_claude_3p7_sonnet.sh image 0 -1
 
-bash inference_claude_3p5_haiku.sh text 0 -1
-bash inference_claude_3p5_haiku.sh code 0 -1
-bash inference_claude_3p5_haiku.sh image 0 -1
+bash scripts/inference_claude_3p5_haiku.sh text 0 -1
+bash scripts/inference_claude_3p5_haiku.sh code 0 -1
+bash scripts/inference_claude_3p5_haiku.sh image 0 -1
 
-bash inference_llama4_maverick.sh text 0 -1
-bash inference_llama4_maverick.sh code 0 -1
-bash inference_llama4_maverick.sh image 0 -1
+bash scripts/inference_llama4_maverick.sh text 0 -1
+bash scripts/inference_llama4_maverick.sh code 0 -1
+bash scripts/inference_llama4_maverick.sh image 0 -1
 
-bash inference_llama_3p1_405b.sh text 0 -1
-bash inference_llama_3p1_405b.sh code 0 -1
+bash scripts/inference_llama_3p1_405b.sh text 0 -1
+bash scripts/inference_llama_3p1_405b.sh code 0 -1
 
-bash inference_llama_3p2_8b.sh text 0 -1
-bash inference_llama_3p2_8b.sh code 0 -1
+bash scripts/inference_llama_3p2_8b.sh text 0 -1
+bash scripts/inference_llama_3p2_8b.sh code 0 -1
