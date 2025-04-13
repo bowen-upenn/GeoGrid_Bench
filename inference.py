@@ -219,15 +219,15 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                 # Llama on Lambda – fallback for lambda-based models.
                 # Use a payload that includes the image under the key "image" as a sub–dictionary.
                 messages = [
-                    {"role": "user", "content": prompt},
-                    {"role": "user", "image": {"data": f"data:image/jpeg;base64,{base64_image}"}}
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
                 ]
 
             # payload = [
             #     {"type": "text", "text": prompt},
             #     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
             # ]
-            
+
             if verbose:
                 print(f"\n=== Image Query for row {index} [{img_type}] ===")
                 print(f"Image path: {image_path}")
