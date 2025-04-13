@@ -10,13 +10,6 @@ We use Conda environment. Please run the following commands to create the enviro
     conda activate geospatial
     pip install -r requirements.txt
 
-Google Gemini models have conflicting dependencies with OpenAI models related to `google-genai` and `httpx` packages. To run Gemini models, we therefore recommend creating a separate Conda environment:
-
-    conda create -n geospatial_gemini python=3.9
-    conda activate geospatial_gemini
-    pip install -r requirements.txt
-    pip install -q -U google-genai
-
 ## 🚀 Running Inference on Benchmark Data
 
 ### Step 1 - Credential Setup

@@ -28,7 +28,8 @@ class QueryLLM:
         self.use_url = args['models']['use_url']
         if self.use_url:
             # Load the URL for internal OpenAI models
-            assert re.search(r'gpt', self.args['models']['llm']) or 'o' in self.args['models']['llm']
+            assert re.search(r'gpt', self.args['models']['llm']) or \
+                re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None
 
             with open("api_tokens/model_url.txt", "r") as url_file:
                 self.url = url_file.read().strip()
@@ -36,7 +37,8 @@ class QueryLLM:
                 self.user = user_name_file.read().strip()
         else:
             # OpenAI API
-            if re.search(r'gpt', self.args['models']['llm']) is not None or 'o' in self.args['models']['llm']:
+            if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
+                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None:
                 with open("api_tokens/openai_key.txt", "r") as api_key_file:
                     self.api_key = api_key_file.read().strip()
                 self.client = OpenAI(api_key=self.api_key)
@@ -92,7 +94,6 @@ class QueryLLM:
                     "model": self.args['models']['llm'],
                     "system": "You are a helpful data analyzer assistant.", # detailed instructions are provided in the prompt
                     "prompt": prompt,
-                    "max_tokens": 2000,
                 }
 
                 # Convert the dict to JSON
@@ -107,7 +108,8 @@ class QueryLLM:
 
             else:
                 # Call OpenAI API for GPT models by default
-                if re.search(r'gpt', self.args['models']['llm']) is not None or 'o' in self.args['models']['llm']:
+                if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
+                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None:
                     response = self.client.chat.completions.create(
                         model=self.args['models']['llm'],
                         messages=[{"role": "user",
@@ -132,8 +134,8 @@ class QueryLLM:
                 elif re.search(r'claude', self.args['models']['llm']) is not None:
                     response = self.client.messages.create(
                         model=self.args['models']['llm'],
-                        messages=[{"role": "user",
-                                   "content": prompt}],
+                        messages=prompt,
+                        max_tokens=2048,
                     )
                     response = response.content[0].text
 

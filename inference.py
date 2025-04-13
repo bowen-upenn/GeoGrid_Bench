@@ -173,14 +173,13 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             prompt += "Instruction: Analyze this image and answer the question. Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'."
 
             # Branch based on the model type for handling images
-            if re.search(r'gpt', model, flags=re.IGNORECASE) or ('o' in model.lower()):
+            if re.search(r'gpt', model, flags=re.IGNORECASE) or re.search(r'o1', model, flags=re.IGNORECASE) or re.search(r'o3', model, flags=re.IGNORECASE):
                 # ---------------------------
                 # OpenAI API – using current multimodal support for images
-                payload = [
+                messages = [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
                 ]
-                response = llm.query_llm(step='inference', content=payload, assistant=False, verbose=verbose)
             elif re.search(r'gemini', model, flags=re.IGNORECASE):
                 # ---------------------------
                 # Google Gemini API – create a Gemini history payload
@@ -191,28 +190,30 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                     {"role": "user", "content": f"Image data: data:image/jpeg;base64,{base64_image}"}
                 ]
                 # Convert the messages into Gemini’s chat history format (using the provided utility)
-                gemini_history = utils.openai_to_gemini_history(messages)
-                response_obj = llm.client.models.generate_content(
-                    model=model,
-                    contents=gemini_history,
-                    max_output_tokens=2000,
-                )
-                response = response_obj.text
+                messages = utils.openai_to_gemini_history(messages)
             elif re.search(r'claude', model, flags=re.IGNORECASE):
                 # ---------------------------
                 # Anthropic Claude API – construct a payload with text and image data.
                 # In this example, the image is passed via the key "image_data" (this may differ in your implementation).
                 messages = [
-                    {"role": "user", "content": prompt},
-                    {"role": "user", "image_data": f"data:image/jpeg;base64,{base64_image}"}
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/png",
+                                    "data": base64_image  # assuming this is your base64-encoded string
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt  # assuming this is your prompt text
+                            }
+                        ]
+                    }
                 ]
-                response_obj = llm.client.messages.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=2000
-                )
-                # Here we assume that the Claude API returns a response object with a similar structure.
-                response = response_obj.content[0].text
             else:
                 # ---------------------------
                 # Llama on Lambda – fallback for lambda-based models.
@@ -221,23 +222,17 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                     {"role": "user", "content": prompt},
                     {"role": "user", "image": {"data": f"data:image/jpeg;base64,{base64_image}"}}
                 ]
-                chat_completion = llm.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=2000
-                )
-                response = chat_completion.choices[0].message.content
 
             # payload = [
             #     {"type": "text", "text": prompt},
             #     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
             # ]
-
+            
             if verbose:
                 print(f"\n=== Image Query for row {index} [{img_type}] ===")
                 print(f"Image path: {image_path}")
 
-            response = llm.query_llm(step='inference', content=payload, assistant=False, verbose=verbose)
+            response = llm.query_llm(step='inference', content=messages, assistant=False, verbose=verbose)
 
             selected_option = parse_answer(response)
             is_correct = (selected_option == correct_answer) if selected_option else False
