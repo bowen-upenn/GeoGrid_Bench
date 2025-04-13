@@ -69,6 +69,11 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 - **[START_IDX]** and **[END_IDX]** define the range of question indices for inference. The script will run inference starting at [START_IDX] and ending just before [END_IDX] (non-inclusive). 
 > 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
 
+- If you are using internal OpenAI models accessed by an URL, add `use_url` to the command line. For example:
+  
+  bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
+
+
 **We provide a complete [checklist](scripts/checklist.txt) of all scripts used in our benchmark.**
 
 ### Step 3 - Saving Inference Results
