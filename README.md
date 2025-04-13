@@ -71,7 +71,7 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 
 - If you are using internal OpenAI models accessed by an URL, add `use_url` to the command line. For example:
   
-  bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
+    bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
 
 
 **We provide a complete [checklist](scripts/checklist.txt) of all scripts used in our benchmark.**
