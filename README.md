@@ -21,6 +21,12 @@ We use Conda environment. Please run the following commands to create the enviro
 - `model_url.txt` – containing the base URL of the internal OpenAI model endpoint
 - `user_name.txt` – containing your Argonne username
 
+### 🔸 If you are running **open-sourced Llama models from Huggingface**:
+1. Login with a [HF token](https://huggingface.co/settings/tokens) with gated access permission:
+```bash 
+huggingface-cli login
+```
+2. Request the model access from [HuggingFace](https://huggingface.co/meta-llama). 
 
 #### 🔸 Otherwise, for **public API providers**, follow these steps:
 
@@ -50,9 +56,12 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
   - Claude-3.5-Haiku: ```run_inference_claude_3p5_haiku.sh```
 - **[Meta Llama Models](https://docs.lambda.ai/public-cloud/lambda-inference-api/?_gl=1*1yqhedk*_gcl_aw*R0NMLjE3NDQwOTAyNjIuQ2owS0NRanc3ODJfQmhEakFSSXNBQlR2X0pEWUpQRTRhLXJMY0xjeWZYYUZrRzE4Q196MG0zdjY0cmQtX09FYm5iRHlrek95QWVDVVZxVWFBbnhYRUFMd193Y0I.*_gcl_au*NTQ3OTExNDIzLjE3NDQwOTAyNjE.*_ga*MTA0MjYwNjUyMS4xNzQ0MDkwMjYy*_ga_43EZT1FM6Q*MTc0NDA5MDI2MS4xLjAuMTc0NDA5MDI2MS42MC4wLjY1NjAyNzc2NA..)**
   - Llama-4-Maverick: ```run_inference_llama4_maverick.sh```
-  - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
+  - Llama-4-Scout: ```run_inference_llama4_scout.sh```
+  - Llama-3.3-70B: ```run_inference_llama3p3_70b.sh```
+  - Llama-3.2-90B-Vision: ```run_inference_llama_3p2_90b_vision.sh```
   - Llama-3.2-11B-Vision: ```run_inference_llama_3p2_11b_vision.sh```
   - Llama-3.2-3B: ```run_inference_llama_3p2_3b.sh```
+  - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
 ```bash
