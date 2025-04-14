@@ -51,6 +51,8 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
 - **[Meta Llama Models](https://docs.lambda.ai/public-cloud/lambda-inference-api/?_gl=1*1yqhedk*_gcl_aw*R0NMLjE3NDQwOTAyNjIuQ2owS0NRanc3ODJfQmhEakFSSXNBQlR2X0pEWUpQRTRhLXJMY0xjeWZYYUZrRzE4Q196MG0zdjY0cmQtX09FYm5iRHlrek95QWVDVVZxVWFBbnhYRUFMd193Y0I.*_gcl_au*NTQ3OTExNDIzLjE3NDQwOTAyNjE.*_ga*MTA0MjYwNjUyMS4xNzQ0MDkwMjYy*_ga_43EZT1FM6Q*MTc0NDA5MDI2MS4xLjAuMTc0NDA5MDI2MS42MC4wLjY1NjAyNzc2NA..)**
   - Llama-4-Maverick: ```run_inference_llama4_maverick.sh```
   - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
+  - Llama-3.2-11B-Vision: ```run_inference_llama_3p2_11b_vision.sh```
+  - Llama-3.2-3B: ```run_inference_llama_3p2_3b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
 ```bash
@@ -58,7 +60,7 @@ bash scripts/run_inference_gpt4o.sh [MODALITY] [START_IDX] [END_IDX]
 ```
 
 - **[MODALITY]** can be one of the following: ```text```, ```code```, or ```image```.
-> 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, and Llama-4-Maverick.
+> 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, Llama-4-Maverick, and Llama-3.2-11B-Vision.
 
 - **[START_IDX]** and **[END_IDX]** define the range of question indices for inference. The script will run inference starting at [START_IDX] and ending just before [END_IDX] (non-inclusive). 
 > 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
