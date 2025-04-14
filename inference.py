@@ -10,6 +10,10 @@ import re
 from tqdm import tqdm
 import base64
 
+from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
+from google.genai import types
+import PIL.Image
+
 from query_llm import QueryLLM
 import utils
 
@@ -175,26 +179,21 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             # Branch based on the model type for handling images
             if re.search(r'gpt', model, flags=re.IGNORECASE) or re.search(r'o1', model, flags=re.IGNORECASE) or re.search(r'o3', model, flags=re.IGNORECASE):
                 # ---------------------------
-                # OpenAI API – using current multimodal support for images
+                # OpenAI API
                 messages = [
                     {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
                 ]
             elif re.search(r'gemini', model, flags=re.IGNORECASE):
                 # ---------------------------
-                # Google Gemini API – create a Gemini history payload
-                # Here we create two OpenAI–style messages: one for text and one for the image.
-                # Note: Depending on Gemini’s requirements you might need to adjust the format.
+                # Google Gemini API
                 messages = [
-                    {"role": "user", "content": prompt},
-                    {"role": "user", "content": f"Image data: data:image/jpeg;base64,{base64_image}"}
+                    prompt, 
+                    types.Part.from_bytes(data=base64_image, mime_type="image/png")
                 ]
-                # Convert the messages into Gemini’s chat history format (using the provided utility)
-                messages = utils.openai_to_gemini_history(messages)
             elif re.search(r'claude', model, flags=re.IGNORECASE):
                 # ---------------------------
-                # Anthropic Claude API – construct a payload with text and image data.
-                # In this example, the image is passed via the key "image_data" (this may differ in your implementation).
+                # Anthropic Claude API
                 messages = [
                     {
                         "role": "user",
@@ -216,17 +215,11 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                 ]
             else:
                 # ---------------------------
-                # Llama on Lambda – fallback for lambda-based models.
-                # Use a payload that includes the image under the key "image" as a sub–dictionary.
+                # Llama API on Lambda
                 messages = [
                     {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
                 ]
-
-            # payload = [
-            #     {"type": "text", "text": prompt},
-            #     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-            # ]
 
             if verbose:
                 print(f"\n=== Image Query for row {index} [{img_type}] ===")

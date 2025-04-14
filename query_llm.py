@@ -121,12 +121,9 @@ class QueryLLM:
 
                 # Call Google Gemini API for Gemini models
                 elif re.search(r'gemini', self.args['models']['llm']) is not None:
-                    messages = [{"role": "user",
-                                 "content": prompt}],
-                    messages = utils.openai_to_gemini_history(messages)
                     response = self.client.models.generate_content(
                         model=self.args['models']['llm'],
-                        contents=messages,
+                        contents=prompt,
                     )
                     response = response.text
 

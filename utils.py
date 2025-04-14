@@ -8,9 +8,6 @@ import json
 import difflib
 import os
 
-from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
-from google.genai.types import Part, UserContent, ModelContent
-
 
 climate_variables = {'maximum annual temperature': './data/climrr/AnnualTemperatureMaximum.csv',
                      'minimum annual temperature': './data/climrr/AnnualTemperatureMinimum.csv',
@@ -485,35 +482,6 @@ def match_tolerant_sets(source_set, target_set, threshold=0.8):
         if closest_match:
             matched_names.append(closest_match[0])
     return matched_names
-
-
-def openai_to_gemini_history(openai_messages):
-    """
-    Convert OpenAI-style messages to Gemini chat history format.
-
-    Args:
-        openai_messages (list of dict): Each dict has "role" and "content".
-
-    Returns:
-        list: Gemini-style history (UserContent and ModelContent instances).
-    """
-    gemini_history = []
-
-    for msg in openai_messages:
-        role = msg.get("role")
-        content = msg.get("content", "")
-
-        if not content or role not in {"user", "assistant"}:
-            continue  # Skip unsupported roles or empty content
-
-        part = Part(text=content)
-
-        if role == "user" or role == "system":
-            gemini_history.append(UserContent(parts=[part]))
-        elif role == "assistant":
-            gemini_history.append(ModelContent(parts=[part]))
-
-    return gemini_history
 
 
 def flatten_answers(answer_dict):
