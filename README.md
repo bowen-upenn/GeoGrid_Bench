@@ -21,7 +21,7 @@ We use Conda environment. Please run the following commands to create the enviro
 - `model_url.txt` – containing the base URL of the internal OpenAI model endpoint
 - `user_name.txt` – containing your Argonne username
 
-### 🔸 If you are running **open-sourced Llama models from Huggingface**:
+#### 🔸 If you are running **open-sourced Llama models from Huggingface**:
 1. Login with a [HF token](https://huggingface.co/settings/tokens) with gated access permission:
 ```bash 
 huggingface-cli login
