@@ -12,6 +12,7 @@ import requests
 import anthropic
 from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 from google.genai.types import Part, UserContent, ModelContent
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 import prompts
 import utils
@@ -63,6 +64,12 @@ class QueryLLM:
                 with open("api_tokens/claude_key.txt", "r") as claude_key_file:
                     self.claude_key = claude_key_file.read()
                 self.client = anthropic.Client(api_key=self.claude_key)
+
+            # Hugging Face LLaMA models
+            elif re.search(r'llama', self.args['models']['llm']) is not None:
+                self.model_path = self.args['models']['llm']
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+                self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
 
             # Lambda Cloud API for LLaMA models
             else:
@@ -135,6 +142,14 @@ class QueryLLM:
                         max_tokens=2048,
                     )
                     response = response.content[0].text
+
+                # Use Hugging Face local LLaMA model
+                elif re.search(r'llama', self.args['models']['llm']) is not None:
+                    # Tokenize the prompt and generate response tokens using the local model
+                    inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+                    # Adjust max_new_tokens and other parameters as needed
+                    outputs = self.model.generate(**inputs, max_new_tokens=2048)
+                    response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
                 # Call lambda API for other models
                 else:

@@ -14,7 +14,7 @@ START_IDX="${2:-0}"
 END_IDX="${3:--1}"   # If -1 is passed, it will be ignored and the entire dataset will be used
 
 # Arguments for the Python script
-MODEL_NAME="llama3.2-11b-vision-instruct"
+MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_${MODEL_NAME}_${MODALITY}.jsonl"
 
