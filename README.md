@@ -69,7 +69,7 @@ bash scripts/run_inference_gpt4o.sh [MODALITY] [START_IDX] [END_IDX]
 ```
 
 - **[MODALITY]** can be one of the following: ```text```, ```code```, or ```image```.
-> 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, Llama-4-Maverick, and Llama-3.2-11B-Vision.
+> 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, Llama-4-Maverick, Llama-4-Scout, Llama-3.2-90B-Vision, and Llama-3.2-11B-Vision.
 
 - **[START_IDX]** and **[END_IDX]** define the range of question indices for inference. The script will run inference starting at [START_IDX] and ending just before [END_IDX] (non-inclusive). 
 > 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
