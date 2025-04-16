@@ -1,3 +1,10 @@
+import os
+os.environ['HF_HOME'] = './hf_home'
+os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
+
+from huggingface_hub import login
+login("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")
+
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -139,7 +146,7 @@ class QueryLLM:
                     response = self.client.messages.create(
                         model=self.args['models']['llm'],
                         messages=prompt,
-                        max_tokens=2048,
+                        max_tokens=4096,
                     )
                     response = response.content[0].text
 
@@ -148,7 +155,7 @@ class QueryLLM:
                     # Tokenize the prompt and generate response tokens using the local model
                     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
                     # Adjust max_new_tokens and other parameters as needed
-                    outputs = self.model.generate(**inputs, max_new_tokens=2048)
+                    outputs = self.model.generate(**inputs, max_new_tokens=4096)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
                 # Call lambda API for other models
