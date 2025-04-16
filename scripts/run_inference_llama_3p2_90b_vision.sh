@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Limit virtual memory to 32GB (in KB)
-ulimit -v $((32 * 1024 * 1024))
 
 # Activate the virtual environment (if needed)
 # source myenv/bin/activate

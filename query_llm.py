@@ -1,3 +1,10 @@
+import os
+os.environ['HF_HOME'] = './hf_home'
+os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
+
+from huggingface_hub import login
+login("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")
+
 import torch
 import numpy as np
 from tqdm import tqdm

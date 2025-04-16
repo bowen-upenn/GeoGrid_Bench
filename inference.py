@@ -9,6 +9,7 @@ import os
 import re
 from tqdm import tqdm
 import base64
+import os
 
 from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 from google.genai import types
@@ -128,6 +129,8 @@ def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
         }
 
         # Save immediately to the result file if provided.
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
+
         with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
             file.write(json.dumps(question_result, ensure_ascii=False) + "\n")  # Append as JSONL
 
@@ -252,6 +255,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                 "full_response": response,
             }
 
+            os.makedirs(os.path.dirname(result_path), exist_ok=True)
             # Save immediately to the result file if provided.
             with open(result_path, "a", encoding="utf-8") as file:  # 'a' mode for append
                 file.write(json.dumps(image_result, ensure_ascii=False) + "\n")  # Append as JSONL
