@@ -9,12 +9,12 @@
         "template": "Which region in the {location1} experienced the largest increase in {climate_variable1} during {time_frame1}?"
     },
     {
-        "question": "How has maximum annual temperature changed between historical period and mid-century period (RCP4.5) in the New York, New York, United States?",
+        "question": "How has fire weather index changed between summer in historical period and autumn in historical period in the Santa Monica, California, United States?",
         "filled_values": {
-            "climate_variable1": "maximum annual temperature",
-            "location1": "New York, New York, United States",
-            "time_frame1": "historical period",
-            "time_frame2": "mid-century period (RCP4.5)"
+            "climate_variable1": "fire weather index",
+            "location1": "Santa Monica, California, United States",
+            "time_frame1": "summer in historical period",
+            "time_frame2": "autumn in historical period"
         },
         "template": "How has {climate_variable1} changed between {time_frame1} and {time_frame2} in the {location1}?"
     },

@@ -74,9 +74,8 @@ class BenchmarkDatasetGenerator:
         total = self.num_samples if self.num_samples > 0 else len(samples)
         all_failed_samples = []
         for idx, sample in tqdm(enumerate(samples), total=total):
-            # print('sample', sample)
-            # if idx != 1:
-            #     continue
+            if idx != 1:
+                continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
             try:
@@ -531,7 +530,7 @@ if __name__ == "__main__":
     parser.add_argument('--llm', type=str, default="gpt-4o-mini", help="Set LLM model")
     parser.add_argument('--n', type=int, default=-1, help="Number of samples to generate")
     parser.add_argument('--data', type=str, default="test_filled_questions.json", help="Data file")
-    parser.add_argument('--output', type=str, default="output/", help="Output path")
+    parser.add_argument('--output', type=str, default="data/", help="Output path")
     parser.add_argument('--radius', type=float, help="Radius for data retrieval")
     parser.add_argument('--verbose', dest='verbose', action='store_true', help="Enable verbose output")
     cmd_args = parser.parse_args()

@@ -9,10 +9,10 @@ import math
 
 from openai import OpenAI
 import requests
-import anthropic
-from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
-from google.genai.types import Part, UserContent, ModelContent
-from transformers import AutoTokenizer, AutoModelForCausalLM
+# import anthropic
+# from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
+# from google.genai.types import Part, UserContent, ModelContent
+# from transformers import AutoTokenizer, AutoModelForCausalLM
 
 import prompts
 import utils
