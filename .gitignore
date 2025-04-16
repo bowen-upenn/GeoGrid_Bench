@@ -8,3 +8,6 @@ filtered_image.jpg
 ocr_result.jpg
 data/benchmark/
 result/
+hf_home/
+data/image_data/
+qa_data.csv
