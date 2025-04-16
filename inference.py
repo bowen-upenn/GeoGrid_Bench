@@ -21,23 +21,29 @@ import utils
 
 def parse_answer(response):
     """
-    Extract the final answer from the LLM response after 'Final Answer:'.
-    Consider it correct only if exactly one valid choice (a, b, c, or d) is found.
+    Extract the final answer from an LLM response in various formats.
+    Handles bracketed or unbracketed letters, LaTeX syntax, and flexible wording.
     """
 
-    # Extract the portion after "Final Answer:"
-    match = re.search(r"Final Answer:\s*(.*)", response, re.IGNORECASE)
+    # Try to match flexible final answer patterns
+    match = re.search(r"(?:final answer\s*[:\-]*|the final answer is\s*[:\-]*|answer\s*[:\-]*)\s*(.*)",
+                      response, re.IGNORECASE)
 
     if not match:
-        return None  # No "Final Answer:" found
+        return None  # No recognizable answer lead-in
 
-    answer_text = match.group(1).strip()  # Extract answer part and strip whitespace
+    answer_text = match.group(1).strip()
 
-    # Find all occurrences of (a), (b), (c), or (d)
-    options = re.findall(r"\(\s*[a-dA-D]\s*\)", answer_text)
+    # Remove LaTeX \boxed{} and dollar signs
+    answer_text = re.sub(r"\\boxed\{([^}]+)\}", r"\1", answer_text)
+    answer_text = re.sub(r"\$+", "", answer_text)
 
-    if len(options) == 1:  # Ensure exactly one valid answer
-        return options[0].lower()  # Normalize case (e.g., "(A)" -> "(a)")
+    # Match all single-letter choices a–d (case-insensitive), optionally surrounded by (), [], or nothing
+    options = re.findall(r"[\(\[\{]?\s*([a-dA-D])\s*[\)\]\}]?", answer_text)
+
+    # Only valid if exactly one option is found
+    if len(options) == 1:
+        return f"({options[0].lower()})"  # Normalize to (a), (b), etc.
 
     return None
 
