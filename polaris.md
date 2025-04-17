@@ -7,6 +7,8 @@ cd /lus/eagle/projects/ARAIA/xinyu/multimodal_climate_benchmark
 
 conda activate geospatial
 
-bash ./scripts/run_inference_llama_3p1_8b.sh text 0 -1
+bash scripts/run_inference_llama_3p1_8b.sh text 0 -1
+
+bash scripts/run_inference_llama_3p2_11b_vision.sh image 0 -1
 ```
 
