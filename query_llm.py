@@ -20,13 +20,14 @@ import random
 import re
 import math
 import io, contextlib, sys
+from PIL import Image
 
 from openai import OpenAI
 import requests
 # import anthropic
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, MllamaForConditionalGeneration
 
 import prompts
 import utils
@@ -84,6 +85,12 @@ class QueryLLM:
                 self.model_path = self.args['models']['llm']
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
                 self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
+                self.vision_model = MllamaForConditionalGeneration.from_pretrained(
+                    self.model_path,
+                    torch_dtype=torch.bfloat16,
+                    device_map="auto",
+                )
+                self.processor = AutoProcessor.from_pretrained(self.model_path)
 
             # Lambda Cloud API for LLaMA models
             else:
@@ -119,7 +126,6 @@ class QueryLLM:
         an exception message if it fails.
         """
         response = self.extract_code(response)
-        print('!!!!!!!!!!!!!extracted code: ', response)
         buffer = io.StringIO()
 
         # Redirect ALL prints into our buffer
@@ -199,15 +205,23 @@ class QueryLLM:
                 # Use Hugging Face local LLaMA model
                 elif re.search(r'llama', self.args['models']['llm']) is not None:
                     # Tokenize the prompt and generate response tokens using the local model
-                    prompt = prompt + 'The final answer should be one of (a), (b), (c), or (d).'
-                    inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+                    if mode == 'image':
+                        image = prompt['image']
+                        text = prompt['text'] + '\nThe final answer should be one of (a), (b), (c), or (d).<|image|>'
+                        inputs = self.processor(text=text, images=image, return_tensors="pt").to(self.model.device)
+                    else:
+                        prompt = prompt + 'The final answer should be one of (a), (b), (c), or (d).'
+                        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
 
                     # Get eos token id safely
                     eos_token_id = self.tokenizer.eos_token_id or self.tokenizer.convert_tokens_to_ids("</s>")
                     pad_token_id = self.tokenizer.pad_token_id or eos_token_id
 
                     # Adjust max_new_tokens and other parameters as needed
-                    outputs = self.model.generate(**inputs, max_new_tokens=2048, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
+                    if mode == 'image':
+                        outputs = self.vision_model.generate(**inputs, max_new_tokens=2048)
+                    else:
+                        outputs = self.model.generate(**inputs, max_new_tokens=2048)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
                 # Call lambda API for other models

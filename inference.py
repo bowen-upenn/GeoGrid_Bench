@@ -10,6 +10,7 @@ import re
 from tqdm import tqdm
 import base64
 import os
+from PIL import Image
 
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai import types
@@ -224,10 +225,8 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             else:
                 # ---------------------------
                 # Llama API on Lambda
-                messages = [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
-                ]
+                image = Image.open(image_path)
+                messages = {'image': image, 'text': prompt}
 
             if verbose:
                 print(f"\n=== Image Query for row {index} [{img_type}] ===")
