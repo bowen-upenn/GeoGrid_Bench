@@ -11,8 +11,8 @@ from tqdm import tqdm
 import base64
 import os
 
-from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
-from google.genai import types
+# from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
+# from google.genai import types
 import PIL.Image
 
 from query_llm import QueryLLM
@@ -21,29 +21,27 @@ import utils
 
 def parse_answer(response):
     """
-    Extract the final answer from an LLM response in various formats.
-    Handles bracketed or unbracketed letters, LaTeX syntax, and flexible wording.
+    Extracts the final answer segment after the last occurrence of '####Final Answer:'.
+    Then identifies a single valid choice (a, b, c, or d), allowing variations like (a), [a], or just a, case-insensitively.
     """
+    # Find the last section after '####'
+    parts = re.split(r"####", response)
+    if len(parts) < 2:
+        return None  # No '####' found
 
-    # Try to match flexible final answer patterns
-    match = re.search(r"(?:final answer\s*[:\-]*|the final answer is\s*[:\-]*|answer\s*[:\-]*)\s*(.*)",
-                      response, re.IGNORECASE)
+    last_section = parts[-1].strip()
 
-    if not match:
-        return None  # No recognizable answer lead-in
-
-    answer_text = match.group(1).strip()
-
-    # Remove LaTeX \boxed{} and dollar signs
-    answer_text = re.sub(r"\\boxed\{([^}]+)\}", r"\1", answer_text)
-    answer_text = re.sub(r"\$+", "", answer_text)
-
-    # Match all single-letter choices a–d (case-insensitive), optionally surrounded by (), [], or nothing
-    options = re.findall(r"[\(\[\{]?\s*([a-dA-D])\s*[\)\]\}]?", answer_text)
-
-    # Only valid if exactly one option is found
-    if len(options) == 1:
-        return f"({options[0].lower()})"  # Normalize to (a), (b), etc.
+    # Match formats:
+    #   - (a), [a]
+    #   - \box{a}, \boxed{a}
+    #   - option a / choice b / answer d
+    match = re.search(
+        r"(\([a-dA-D]\)|\[[a-dA-D]\]|\\box(?:ed)?\{[a-dA-D]\}|\b(?:option|choice|answer)\s+[a-dA-D]\b)",
+        last_section,
+        re.IGNORECASE
+    )
+    if match:
+        return match.group(0)
 
     return None
 
@@ -90,16 +88,17 @@ def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
 
         # Append instruction based on mode
         if mode == "text":
-            prompt += "\n\nInstruction: Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'. Please do NOT use programming code."
+            prompt += "\n\nInstruction: Think step by step before making a decision. Then, explicitly state your final choice after the special word '####Final Answer:'. Please do NOT use programming code."
         if mode == "code":
-            prompt += "\n\nInstruction: Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'. Please use programming code to help you."
+            prompt += ("\n\nInstruction: Please write a single Python function enclosed in ```python to answer the question and you must include print statements to show the final answer using 'Final Answer:'. "
+                       "Generate the code only once. Do not regenerate the code repeatedly, even if the code does not work. Give your final answer in one sentence at the end the special word '####Final Answer:'. No other text.")
 
         if verbose:
             print(f"\n=== Question {total_questions} [{mode}] ===")
             print(prompt)
 
         # Query LLM
-        response = llm.query_llm(step='inference', content=prompt, assistant=False, verbose=verbose)
+        response = llm.query_llm(step='inference', content=prompt, mode=mode, assistant=False, verbose=verbose)
 
         # Extract and validate answer
         selected_option = parse_answer(response)
@@ -234,7 +233,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                 print(f"\n=== Image Query for row {index} [{img_type}] ===")
                 print(f"Image path: {image_path}")
 
-            response = llm.query_llm(step='inference', content=messages, assistant=False, verbose=verbose)
+            response = llm.query_llm(step='inference', content=messages, mode='image', assistant=False, verbose=verbose)
 
             selected_option = parse_answer(response)
             is_correct = (selected_option == correct_answer) if selected_option else False

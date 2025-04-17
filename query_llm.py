@@ -5,6 +5,12 @@ os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
 from huggingface_hub import login
 login("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")
 
+# spin up 16 threads (or however many cores you have)
+os.environ["OMP_NUM_THREADS"]     = "16"
+os.environ["MKL_NUM_THREADS"]     = "16"
+os.environ["OPENBLAS_NUM_THREADS"]= "16"
+os.environ["NUMEXPR_NUM_THREADS"] = "16"
+
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -13,13 +19,14 @@ import json
 import random
 import re
 import math
+import io, contextlib, sys
 
 from openai import OpenAI
 import requests
 # import anthropic
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
-# from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 import prompts
 import utils
@@ -85,10 +92,52 @@ class QueryLLM:
                 lambda_url = "https://api.lambdalabs.com/v1"
                 self.client = OpenAI(api_key=self.lambda_key, base_url=lambda_url)
 
+
     def create_a_thread(self):
         self.thread = self.client.beta.threads.create()
 
-    def query_llm(self, step='extract_location', content="", assistant=False, verbose=False):
+
+    def extract_code(self, response):
+        """
+        Extract the last Python code block in the response whose length > 10.
+        If no such block exists, return the original response.
+        """
+        matches = re.findall(r"```(?:python)?\s*(.*?)\s*```", response, re.DOTALL)
+
+        # Filter and reverse scan to find the last valid one
+        for code in reversed(matches):
+            if len(code.strip()) > 10:
+                return code.strip()
+
+        return response
+
+
+    def execute_code(self, response):
+        """
+        Execute a block of Python code and return its stdout output (including
+        both the wrapper prints and any prints in the executed code), or
+        an exception message if it fails.
+        """
+        response = self.extract_code(response)
+        print('!!!!!!!!!!!!!extracted code: ', response)
+        buffer = io.StringIO()
+
+        # Redirect ALL prints into our buffer
+        with contextlib.redirect_stdout(buffer):
+            try:
+                print('Executing code...')
+                exec(response, {})
+                print('Code executed successfully.')
+            except Exception as e:
+                # Any prints up to the error will be in buffer.getvalue()
+                print('Code execution failed. Will continue with the original response.')
+                return response, False
+
+        # On success, buffer holds everything
+        return buffer.getvalue(), True
+
+
+    def query_llm(self, step='extract_location', content="", assistant=False, mode='text', verbose=False):
         if step == 'extract_location':
             prompt = prompts.prompt_to_extract_location(content)
         elif step == 'rephrase_question':
@@ -106,7 +155,7 @@ class QueryLLM:
                 data = {
                     "user": self.user,
                     "model": self.args['models']['llm'],
-                    "system": "You are a helpful data analyzer assistant.", # detailed instructions are provided in the prompt
+                    "system": "You are a helpful data analyzer assistant. The final answer should be one of (a), (b), (c), or (d).", # detailed instructions are provided in the prompt
                     "prompt": prompt,
                 }
 
@@ -119,7 +168,6 @@ class QueryLLM:
 
                 # Receive the response data
                 response = response.json()['response']
-
             else:
                 # Call OpenAI API for GPT models by default
                 if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
@@ -130,8 +178,6 @@ class QueryLLM:
                                    "content": prompt}],
                     )
                     response = response.choices[0].message.content
-                    if verbose:
-                        print("model response: ", response)
 
                 # Call Google Gemini API for Gemini models
                 elif re.search(r'gemini', self.args['models']['llm']) is not None:
@@ -146,16 +192,22 @@ class QueryLLM:
                     response = self.client.messages.create(
                         model=self.args['models']['llm'],
                         messages=prompt,
-                        max_tokens=4096,
+                        max_tokens=2048,
                     )
                     response = response.content[0].text
 
                 # Use Hugging Face local LLaMA model
                 elif re.search(r'llama', self.args['models']['llm']) is not None:
                     # Tokenize the prompt and generate response tokens using the local model
+                    prompt = prompt + 'The final answer should be one of (a), (b), (c), or (d).'
                     inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+
+                    # Get eos token id safely
+                    eos_token_id = self.tokenizer.eos_token_id or self.tokenizer.convert_tokens_to_ids("</s>")
+                    pad_token_id = self.tokenizer.pad_token_id or eos_token_id
+
                     # Adjust max_new_tokens and other parameters as needed
-                    outputs = self.model.generate(**inputs, max_new_tokens=4096)
+                    outputs = self.model.generate(**inputs, max_new_tokens=2048, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
                 # Call lambda API for other models
@@ -167,8 +219,15 @@ class QueryLLM:
                     )
                     response = chat_completion.choices[0].message.content
 
-                if verbose:
-                    print(f'{utils.Colors.OKGREEN}{step.capitalize()}:{utils.Colors.ENDC} {response}')
+            # if mode == 'code':
+            #     if verbose:
+            #         print('!!!!!!!!!!!!!!init response', response)
+            #     execution_result, success = self.execute_code(response)
+            #     print('execution_result', execution_result)
+            #     if success:
+            #         response = execution_result
+            if verbose:
+                print(f'{utils.Colors.OKGREEN}{step.capitalize()}:{utils.Colors.ENDC} {response}')
         else:
             message = self.client.beta.threads.messages.create(
                 thread_id=self.thread.id,
