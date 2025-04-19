@@ -22,29 +22,60 @@ import utils
 
 def parse_answer(response):
     """
-    Extracts the final answer segment after the last occurrence of '####Final Answer:'.
-    Then identifies a single valid choice (a, b, c, or d), allowing variations like (a), [a], or just a, case-insensitively.
+    Extracts a single choice (a, b, c, or d) from the response. First it
+    splits on any of several "lead‑in" markers, then scans the
+    trailing segment for one valid letter choice in various formats.
     """
-    # Find the last section after '####'
-    parts = re.split(r"####", response)
-    if len(parts) < 2:
-        return None  # No '####' found
-
-    last_section = parts[-1].strip()
-
-    # Match formats:
-    #   - (a), [a]
-    #   - \box{a}, \boxed{a}
-    #   - option a / choice b / answer d
-    match = re.search(
-        r"(\([a-dA-D]\)|\[[a-dA-D]\]|\\box(?:ed)?\{[a-dA-D]\}|\b(?:option|choice|answer)\s+[a-dA-D]\b)",
-        last_section,
-        re.IGNORECASE
+    # split on lead‑in markers (case‑insensitive)
+    segments = re.split(
+        r"(?i)(?:####Final Answer:|####|final answer(?: is|:)?|I choose|I select|option|choice)",
+        response
     )
-    if match:
-        return match.group(0)
+    tail = segments[-1].strip()
 
-    return None
+    # look for (a), [a], \box{a}, \boxed{a}, or standalone a–d
+    m = re.search(
+        r"(?:\([A-Da-d]\)|\[[A-Da-d]\]|\\box(?:ed)?\{([A-Da-d])\}|([A-Da-d]))",
+        tail
+    )
+    if not m:
+        return None
+
+    # extract the letter: group 1 if from \box, else group 2 or the bracketed form
+    if m.group(1):
+        letter = m.group(1)
+    elif m.group(2):
+        letter = m.group(2)
+    else:
+        letter = re.search(r"[A-Da-d]", m.group(0)).group(0)
+
+    return f"({letter.lower()})"
+
+# def parse_answer(response):
+#     """
+#     Extracts the final answer segment after the last occurrence of '####Final Answer:'.
+#     Then identifies a single valid choice (a, b, c, or d), allowing variations like (a), [a], or just a, case-insensitively.
+#     """
+#     # Find the last section after '####'
+#     parts = re.split(r"####", response)
+#     if len(parts) < 2:
+#         return None  # No '####' found
+#
+#     last_section = parts[-1].strip()
+#
+#     # Match formats:
+#     #   - (a), [a]
+#     #   - \box{a}, \boxed{a}
+#     #   - option a / choice b / answer d
+#     match = re.search(
+#         r"(\([a-dA-D]\)|\[[a-dA-D]\]|\\box(?:ed)?\{[a-dA-D]\}|\b(?:option|choice|answer)\s+[a-dA-D]\b)",
+#         last_section,
+#         re.IGNORECASE
+#     )
+#     if match:
+#         return match.group(0)
+#
+#     return None
 
 
 def update_accuracy(is_correct, counters, key):
@@ -286,11 +317,26 @@ def main():
                         help="Specify whether to instruct the model to use text, code, image, or all modes.")
     parser.add_argument("--question_path", default="output/benchmark/qa_data.csv", help="Path to the CSV file.")
     parser.add_argument("--result_path", default="result/eval_results_gpt-4o_text.jsonl", help="Path to the result file.")
-    parser.add_argument("--start_idx", type=int, default=0, help="Starting question index.")
+    parser.add_argument("--start_idx", type=int, default=-1, help="Starting question index; -1 to resume from last run.")
     parser.add_argument("--end_idx", type=int, default=-1, help="Ending question index. -1 means iterate till the end.")
     parser.add_argument('--clean', dest='clean', action='store_true', help='Remove existing data files and start clean')
     parser.add_argument("--verbose", action="store_true", help="Print verbose output.")
     args = parser.parse_args()
+
+    # If start_idx is -1, try to get it from the last "index" entry in result_path
+    if args.start_idx == -1 and os.path.exists(args.result_path):
+        try:
+            with open(args.result_path, 'r') as f:
+                lines = f.read().splitlines()
+                for line in reversed(lines):
+                    record = json.loads(line)
+                    if "index" in record:
+                        args.start_idx = record["index"] + 1
+                        print(f"Resuming from index {args.start_idx}")
+                        break
+        except Exception as e:
+            print(f"Failed to load start_idx from result file: {e}")
+            args.start_idx = 0
 
     config['models']['llm'] = args.model
     config['models']['use_url'] = args.use_url
