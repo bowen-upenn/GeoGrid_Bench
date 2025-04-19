@@ -84,12 +84,14 @@ class QueryLLM:
             elif re.search(r'llama', self.args['models']['llm']) is not None:
                 self.model_path = self.args['models']['llm']
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-                self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
-                self.vision_model = MllamaForConditionalGeneration.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.bfloat16,
-                    device_map="auto",
-                )
+                if 'llama4' in self.model_path or 'vision' in self.model_path:
+                    self.vision_model = MllamaForConditionalGeneration.from_pretrained(
+                        self.model_path,
+                        torch_dtype=torch.bfloat16,
+                        device_map="auto",
+                    )
+                else:
+                    self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
                 self.processor = AutoProcessor.from_pretrained(self.model_path)
 
             # Lambda Cloud API for LLaMA models
@@ -210,18 +212,15 @@ class QueryLLM:
                         text = prompt['text'] + '\nThe final answer should be one of (a), (b), (c), or (d).<|image|>'
                         inputs = self.processor(text=text, images=image, return_tensors="pt").to(self.model.device)
                     else:
-                        prompt = prompt + 'The final answer should be one of (a), (b), (c), or (d).'
-                        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+                        text = prompt + '\nThe final answer should be one of (a), (b), (c), or (d).'
+                        inputs = self.processor(text=text, return_tensors="pt").to(self.model.device)
 
                     # Get eos token id safely
                     eos_token_id = self.tokenizer.eos_token_id or self.tokenizer.convert_tokens_to_ids("</s>")
                     pad_token_id = self.tokenizer.pad_token_id or eos_token_id
 
                     # Adjust max_new_tokens and other parameters as needed
-                    if mode == 'image':
-                        outputs = self.vision_model.generate(**inputs, max_new_tokens=2048)
-                    else:
-                        outputs = self.model.generate(**inputs, max_new_tokens=2048)
+                    outputs = self.model.generate(**inputs, max_new_tokens=1024, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
                 # Call lambda API for other models
