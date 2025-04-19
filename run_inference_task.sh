@@ -6,11 +6,11 @@ SIZE=$PMI_SIZE
 
 # Define all tasks
 declare -a TASKS=(
-  "bash ./scripts/run_inference_llama_3p2_11b_vision.sh image 0 -1"
-  "bash ./scripts/run_inference_llama_3p2_3b.sh text 0 -1"
-  "bash ./scripts/run_inference_llama_3p2_3b.sh code 0 -1"
-  "bash ./scripts/run_inference_llama_3p1_8b.sh text 0 -1"
-  "bash ./scripts/run_inference_llama_3p1_8b.sh code 0 -1"
+  "bash ./scripts/run_inference_llama_3p2_11b_vision.sh image -1 -1"
+  "bash ./scripts/run_inference_llama_3p2_3b.sh text -1 -1"
+  "bash ./scripts/run_inference_llama_3p2_3b.sh code -1 -1"
+  "bash ./scripts/run_inference_llama_3p1_8b.sh text -1 -1"
+  "bash ./scripts/run_inference_llama_3p1_8b.sh code -1 -1"
 )
 
 # Calculate which tasks this rank should handle
