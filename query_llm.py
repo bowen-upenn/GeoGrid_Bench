@@ -268,10 +268,10 @@ class QueryLLM:
                     generated_ids_trimmed = [
                         out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
                     ]
-                    output_text = processor.batch_decode(
+                    response = processor.batch_decode(
                         generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
                     )
-                    print('output_text', output_text)
+                    # print('output_text', output_text)
 
 
                 # Call lambda API for other models
