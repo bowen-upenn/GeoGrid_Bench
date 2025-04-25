@@ -7,11 +7,15 @@ cd /lus/eagle/projects/ARAIA/xinyu/multimodal_climate_benchmark
 
 conda activate geospatial
 
-curl https://sh.rustup.rs -sSf | sh
-source $HOME/.cargo/env
+
 
 bash scripts/run_inference_llama_3p1_8b.sh text 0 -1
 
 bash scripts/run_inference_llama_3p2_11b_vision.sh image 0 -1
+
+
+curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
+bash ./scripts/run_inference_qwen_2p5_vl_7b.sh image 0 10 --resume
 ```
 

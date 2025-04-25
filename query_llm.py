@@ -270,8 +270,7 @@ class QueryLLM:
                     ]
                     response = self.processor.batch_decode(
                         generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
-                    )
-                    # print('output_text', output_text)
+                    )[0]
 
 
                 # Call lambda API for other models
