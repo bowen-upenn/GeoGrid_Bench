@@ -28,6 +28,8 @@ import requests
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, MllamaForConditionalGeneration
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+from qwen_vl_utils import process_vision_info
 
 import prompts
 import utils
@@ -92,6 +94,13 @@ class QueryLLM:
                     )
                 else:
                     self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
+                self.processor = AutoProcessor.from_pretrained(self.model_path)
+
+            elif re.search(r'qwen', self.args['models']['llm']) is not None:
+                self.model_path = self.args['models']['llm']
+                self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                    self.model_path, torch_dtype="auto", device_map="auto"
+                )
                 self.processor = AutoProcessor.from_pretrained(self.model_path)
 
             # Lambda Cloud API for LLaMA models
@@ -222,6 +231,40 @@ class QueryLLM:
                     # Adjust max_new_tokens and other parameters as needed
                     outputs = self.model.generate(**inputs, max_new_tokens=1024, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+                elif re.search(r'qwen', self.args['models']['llm']) is not None:
+                    if mode == 'image':
+                        text = self.processor.apply_chat_template(
+                            prompt, tokenize=False, add_generation_prompt=True
+                        )
+                        image_inputs, _ = process_vision_info(prompt)
+                        inputs = self.processor(
+                            text=[text],
+                            images=image_inputs,
+                            padding=True,
+                            return_tensors="pt",
+                        )
+                        inputs = inputs.to("cuda")
+                    else:
+                        text = self.processor.apply_chat_template(
+                            prompt, tokenize=False, add_generation_prompt=True
+                        )
+                        inputs = self.processor(
+                            text=[text],
+                            padding=True,
+                            return_tensors="pt",
+                        )
+                        inputs = inputs.to("cuda")
+
+                    generated_ids = model.generate(**inputs, max_new_tokens=1024)
+                    generated_ids_trimmed = [
+                        out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+                    ]
+                    output_text = processor.batch_decode(
+                        generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+                    )
+                    print('output_text', output_text)
+
 
                 # Call lambda API for other models
                 else:

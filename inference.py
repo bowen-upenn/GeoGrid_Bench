@@ -51,32 +51,6 @@ def parse_answer(response):
 
     return f"({letter.lower()})"
 
-# def parse_answer(response):
-#     """
-#     Extracts the final answer segment after the last occurrence of '####Final Answer:'.
-#     Then identifies a single valid choice (a, b, c, or d), allowing variations like (a), [a], or just a, case-insensitively.
-#     """
-#     # Find the last section after '####'
-#     parts = re.split(r"####", response)
-#     if len(parts) < 2:
-#         return None  # No '####' found
-#
-#     last_section = parts[-1].strip()
-#
-#     # Match formats:
-#     #   - (a), [a]
-#     #   - \box{a}, \boxed{a}
-#     #   - option a / choice b / answer d
-#     match = re.search(
-#         r"(\([a-dA-D]\)|\[[a-dA-D]\]|\\box(?:ed)?\{[a-dA-D]\}|\b(?:option|choice|answer)\s+[a-dA-D]\b)",
-#         last_section,
-#         re.IGNORECASE
-#     )
-#     if match:
-#         return match.group(0)
-#
-#     return None
-
 
 def update_accuracy(is_correct, counters, key):
     if key not in counters:
@@ -253,6 +227,19 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                         ]
                     }
                 ]
+            elif re.search(r'qwen', model, flags=re.IGNORECASE):
+                messages = [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "image": f"data:image/png;base64,{base64_image}",
+                            },
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ]
             else:
                 # ---------------------------
                 # Llama API on Lambda
@@ -319,21 +306,23 @@ def main():
     parser.add_argument("--result_path", default="result/eval_results_gpt-4o_text.jsonl", help="Path to the result file.")
     parser.add_argument("--start_idx", type=int, default=-1, help="Starting question index; -1 to resume from last run.")
     parser.add_argument("--end_idx", type=int, default=-1, help="Ending question index. -1 means iterate till the end.")
+    parser.add_argument("--resume", action="store_true", help="Resume from the last index.")
     parser.add_argument('--clean', dest='clean', action='store_true', help='Remove existing data files and start clean')
     parser.add_argument("--verbose", action="store_true", help="Print verbose output.")
     args = parser.parse_args()
 
     # If start_idx is -1, try to get it from the last "index" entry in result_path
-    if args.start_idx == -1 and os.path.exists(args.result_path):
+    if (args.start_idx == -1 or args.resume) and os.path.exists(args.result_path):
         try:
             with open(args.result_path, 'r') as f:
                 lines = f.read().splitlines()
                 for line in reversed(lines):
                     record = json.loads(line)
                     if "index" in record:
-                        args.start_idx = record["index"] + 1
-                        print(f"Resuming from index {args.start_idx}")
-                        break
+                        if args.start_idx <= record["index"] < args.end_idx:
+                            args.start_idx = record["index"] + 1
+                            print(f"Resuming from index {args.start_idx}")
+                            break
         except Exception as e:
             print(f"Failed to load start_idx from result file: {e}")
             args.start_idx = 0
