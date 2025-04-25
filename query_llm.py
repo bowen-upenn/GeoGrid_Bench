@@ -246,8 +246,16 @@ class QueryLLM:
                         )
                         inputs = inputs.to("cuda")
                     else:
+                        messages = [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                ],
+                            }
+                        ]
                         text = self.processor.apply_chat_template(
-                            prompt, tokenize=False, add_generation_prompt=True
+                            messages, tokenize=False, add_generation_prompt=True
                         )
                         inputs = self.processor(
                             text=[text],
