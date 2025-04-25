@@ -227,7 +227,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                         ]
                     }
                 ]
-            elif re.search(r'qwen', model, flags=re.IGNORECASE):
+            elif re.search(r'Qwen', model, flags=re.IGNORECASE):
                 messages = [
                     {
                         "role": "user",

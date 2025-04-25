@@ -96,7 +96,7 @@ class QueryLLM:
                     self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
                 self.processor = AutoProcessor.from_pretrained(self.model_path)
 
-            elif re.search(r'qwen', self.args['models']['llm']) is not None:
+            elif re.search(r'Qwen', self.args['models']['llm']) is not None:
                 self.model_path = self.args['models']['llm']
                 self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                     self.model_path, torch_dtype="auto", device_map="auto"
@@ -232,7 +232,7 @@ class QueryLLM:
                     outputs = self.model.generate(**inputs, max_new_tokens=1024, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-                elif re.search(r'qwen', self.args['models']['llm']) is not None:
+                elif re.search(r'Qwen', self.args['models']['llm']) is not None:
                     if mode == 'image':
                         text = self.processor.apply_chat_template(
                             prompt, tokenize=False, add_generation_prompt=True
