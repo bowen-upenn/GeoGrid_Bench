@@ -23,32 +23,32 @@ import utils
 def parse_answer(response):
     """
     Extracts a single choice (a, b, c, or d) from the response. First it
-    splits on any of several "lead‑in" markers, then scans the
+    splits on any of several "lead-in" markers, then scans the
     trailing segment for one valid letter choice in various formats.
+    If no valid choice is found, returns None.
     """
-    # split on lead‑in markers (case‑insensitive)
+    # split on lead-in markers (case-insensitive)
     segments = re.split(
         r"(?i)(?:####Final Answer:|####|final answer(?: is|:)?|I choose|I select|option|choice)",
         response
     )
     tail = segments[-1].strip()
 
-    # look for (a), [a], \box{a}, \boxed{a}, or standalone a–d
-    m = re.search(
-        r"(?:\([A-Da-d]\)|\[[A-Da-d]\]|\\box(?:ed)?\{([A-Da-d])\}|([A-Da-d]))",
-        tail
+    # look for (a), [a], \box{a}, \boxed{a}, or standalone a–d as a whole word
+    pattern = (
+        r"(?:"
+          r"\(\s*([A-Da-d])\s*\)"       # (a)
+        r"|\[\s*([A-Da-d])\s*\]"       # [a]
+        r"|\\box(?:ed)?\{\s*([A-Da-d])\s*\}"  # \box{a} or \boxed{a}
+        r"|\b([A-Da-d])\b"             # standalone a
+        r")"
     )
+    m = re.search(pattern, tail)
     if not m:
         return None
 
-    # extract the letter: group 1 if from \box, else group 2 or the bracketed form
-    if m.group(1):
-        letter = m.group(1)
-    elif m.group(2):
-        letter = m.group(2)
-    else:
-        letter = re.search(r"[A-Da-d]", m.group(0)).group(0)
-
+    # whichever group matched, pick that letter
+    letter = next(group for group in m.groups() if group)
     return f"({letter.lower()})"
 
 
@@ -234,7 +234,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                         "content": [
                             {
                                 "type": "image",
-                                "image": f"data:image/png;base64,{base64_image}",
+                                "image": f"data:image;base64,{base64_image}",
                             },
                             {"type": "text", "text": prompt},
                         ],
