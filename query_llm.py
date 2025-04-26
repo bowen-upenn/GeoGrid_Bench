@@ -105,7 +105,7 @@ class QueryLLM:
 
             elif re.search(r'Phi', self.args['models']['llm']) is not None:
                 self.model_path = self.args['models']['llm']
-                self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
+                self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto', trust_remote_code=True)
                 self.processor = AutoProcessor.from_pretrained(
                     self.model_path, torch_dtype="auto", device_map="auto")
                 self.generation_config = GenerationConfig.from_pretrained(self.model_path)
