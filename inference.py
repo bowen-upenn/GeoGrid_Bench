@@ -323,6 +323,14 @@ def main():
                             args.start_idx = record["index"] + 1
                             print(f"Resuming from index {args.start_idx}")
                             break
+                    elif "row_index" in record:
+                        if args.start_idx <= record["row_index"] < args.end_idx:
+                            args.start_idx = record["row_index"] + 1
+                            print(f"Resuming from index {args.start_idx}")
+                            break
+                if args.start_idx == args.end_idx:
+                    print("All questions have been processed. Exiting.")
+                    sys.exit(0)
         except Exception as e:
             print(f"Failed to load start_idx from result file: {e}")
             args.start_idx = 0
@@ -339,8 +347,8 @@ def main():
     df = pd.read_csv(args.question_path)
     modality = ["text", "code", "image"] if args.modality == "all" else [args.modality]
 
-    if args.clean and os.path.exists(args.result_path):
-        os.remove(args.result_path)  # Remove the file
+    # if args.clean and os.path.exists(args.result_path):
+    #     os.remove(args.result_path)  # Remove the file
 
     for mode in modality:
         print(f"\n********** Running mode: {mode} **********")
