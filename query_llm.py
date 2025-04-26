@@ -27,7 +27,7 @@ import requests
 # import anthropic
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, MllamaForConditionalGeneration
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
@@ -102,6 +102,13 @@ class QueryLLM:
                     self.model_path, torch_dtype="auto", device_map="auto"
                 )
                 self.processor = AutoProcessor.from_pretrained(self.model_path)
+
+            elif re.search(r'Phi', self.args['models']['llm']) is not None:
+                self.model_path = self.args['models']['llm']
+                self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
+                self.processor = AutoProcessor.from_pretrained(
+                    self.model_path, torch_dtype="auto", device_map="auto")
+                self.generation_config = GenerationConfig.from_pretrained(self.model_path)
 
             # Lambda Cloud API for LLaMA models
             else:
@@ -272,6 +279,33 @@ class QueryLLM:
                         generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
                     )[0]
 
+                elif re.search(r'Phi', self.args['models']['llm']) is not None:
+                    if mode == 'image':
+                        # chat template
+                        chat = [{'role': 'user', 'content': f'<|image_1|>{prompt["text"]}'},]
+                        prompt = self.processor.tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+                        # need to remove last <|endoftext|> if it is there, which is used for training, not inference. For training, make sure to add <|endoftext|> in the end.
+                        if prompt.endswith('<|endoftext|>'):
+                            prompt = prompt.rstrip('<|endoftext|>')
+                        inputs = processor(prompt, [prompt['image']], return_tensors='pt').to('cuda:0')
+                    else:
+                        # chat template
+                        chat = [{'role': 'user', 'content': prompt["text"]}, ]
+                        prompt = self.processor.tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+                        # need to remove last <|endoftext|> if it is there, which is used for training, not inference. For training, make sure to add <|endoftext|> in the end.
+                        if prompt.endswith('<|endoftext|>'):
+                            prompt = prompt.rstrip('<|endoftext|>')
+                        inputs = processor(prompt, return_tensors='pt').to('cuda:0')
+
+                    generate_ids = self.model.generate(
+                        **inputs,
+                        max_new_tokens=1024,
+                        generation_config=self.generation_config,
+                    )
+                    generate_ids = generate_ids[:, inputs['input_ids'].shape[1]:]
+                    response = self.processor.batch_decode(
+                        generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
+                    )[0]
 
                 # Call lambda API for other models
                 else:

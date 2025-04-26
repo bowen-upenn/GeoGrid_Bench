@@ -240,6 +240,9 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                         ],
                     }
                 ]
+            elif re.search(r'Phi', model, flags=re.IGNORECASE):
+                image = Image.open(image_path)
+                messages = {'image': image, 'text': prompt}
             else:
                 # ---------------------------
                 # Llama API on Lambda
@@ -268,7 +271,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             # Build the per-image query result entry.
             image_result = {
                 "entry_type": "image_query",
-                "row_index": index,
+                "index": index,
                 "image_type": img_type,
                 "image_path": image_path,
                 "selected_option": selected_option,
