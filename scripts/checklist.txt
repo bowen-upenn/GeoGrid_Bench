@@ -43,3 +43,7 @@ bash ./scripts/run_inference_llama_3p1_405b.sh code -1 -1
 bash ./scripts/run_inference_qwen_2p5_vl_7b.sh text -1 -1
 bash ./scripts/run_inference_qwen_2p5_vl_7b.sh code -1 -1
 bash ./scripts/run_inference_qwen_2p5_vl_7b.sh image -1 -1
+
+bash ./scripts/run_inference_phi4.sh text -1 -1
+bash ./scripts/run_inference_phi4.sh code -1 -1
+bash ./scripts/run_inference_phi4.sh image -1 -1
