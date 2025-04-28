@@ -126,6 +126,7 @@ def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
 
         # Build the per-question result entry.
         question_result = {
+            "question_id": row["Question ID"],
             "entry_type": "question",
             "index": index,
             "modality": mode,
@@ -191,7 +192,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             prompt += "Instruction: Analyze this image and answer the question. Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'."
 
             # Branch based on the model type for handling images
-            if re.search(r'gpt', model, flags=re.IGNORECASE) or re.search(r'o1', model, flags=re.IGNORECASE) or re.search(r'o3', model, flags=re.IGNORECASE):
+            if re.search(r'gpt', model, flags=re.IGNORECASE) or re.search(r'o1', model, flags=re.IGNORECASE) or re.search(r'o3', model, flags=re.IGNORECASE) or re.search(r'llama-4', model, flags=re.IGNORECASE):
                 # ---------------------------
                 # OpenAI API
                 messages = [
@@ -245,7 +246,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                 messages = {'image': image, 'text': prompt}
             else:
                 # ---------------------------
-                # Llama API on Lambda
+                # Llama
                 image = Image.open(image_path)
                 messages = {'image': image, 'text': prompt}
 
@@ -270,6 +271,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
 
             # Build the per-image query result entry.
             image_result = {
+                "question_id": row["Question ID"],
                 "entry_type": "image_query",
                 "index": index,
                 "image_type": img_type,

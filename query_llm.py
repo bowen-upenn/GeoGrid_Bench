@@ -2,8 +2,8 @@ import os
 os.environ['HF_HOME'] = './hf_home'
 os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
 
-from huggingface_hub import login
-login("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")
+# from huggingface_hub import login
+# login("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")
 
 # spin up 16 threads (or however many cores you have)
 os.environ["OMP_NUM_THREADS"]     = "16"
@@ -27,9 +27,9 @@ import requests
 # import anthropic
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
-from qwen_vl_utils import process_vision_info
+# from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
+# from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+# from qwen_vl_utils import process_vision_info
 
 import prompts
 import utils
@@ -81,6 +81,14 @@ class QueryLLM:
                 with open("api_tokens/claude_key.txt", "r") as claude_key_file:
                     self.claude_key = claude_key_file.read()
                 self.client = anthropic.Client(api_key=self.claude_key)
+
+            elif re.search(r'llama-4', self.args['models']['llm']) is not None:
+                with open("api_tokens/lambda_key.txt", "r") as api_key_file:
+                    self.api_key = api_key_file.read().strip()
+                self.client = OpenAI(
+                    api_key=self.api_key,
+                    base_url="https://api.lambda.ai/v1"
+                )
 
             # Hugging Face LLaMA models
             elif re.search(r'llama', self.args['models']['llm']) is not None:
@@ -195,7 +203,8 @@ class QueryLLM:
             else:
                 # Call OpenAI API for GPT models by default
                 if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
-                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None:
+                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None \
+                    or re.search(r'llama-4', self.args['models']['llm']) is not None:
                     response = self.client.chat.completions.create(
                         model=self.args['models']['llm'],
                         messages=[{"role": "user",
