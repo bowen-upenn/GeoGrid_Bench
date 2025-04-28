@@ -199,7 +199,10 @@ class QueryLLM:
                 response = requests.post(self.url, data=payload, headers=headers)
 
                 # Receive the response data
-                response = response.json()['response']
+                try:
+                    response = response.json()['response']
+                except:
+                    response = ""
             else:
                 # Call OpenAI API for GPT models by default
                 if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
