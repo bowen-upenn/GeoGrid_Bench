@@ -20,7 +20,7 @@ if [ "$4" == "verbose" ]; then
 fi
 
 # Arguments for the Python script
-MODEL_NAME="gpt-4o"
+MODEL_NAME="gpt-4.1-mini"
 QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_${MODEL_NAME}_${MODALITY}.jsonl"
 

@@ -1,6 +1,7 @@
 models:
     llm: "gpt-4o-mini"
     use_url: False
+    use_assistant: True
 inference:
     verbose: False
     modality: 'text'

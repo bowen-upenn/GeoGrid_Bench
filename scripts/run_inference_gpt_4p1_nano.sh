@@ -13,16 +13,16 @@ MODALITY="${1:-all}"
 START_IDX="${2:-0}"
 END_IDX="${3:--1}"   # If -1 is passed, it will be ignored and the entire dataset will be used
 
+# # Use URL or API token to access OpenAI models
+VERBOSE=false
+if [ "$4" == "verbose" ]; then
+  VERBOSE=true
+fi
+
 # Arguments for the Python script
-MODEL_NAME="o3-mini"
+MODEL_NAME="gpt-4o-nano"
 QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_${MODEL_NAME}_${MODALITY}.jsonl"
-
-# Use URL or API token to access OpenAI models
-USE_URL=false
-if [ "$4" == "use_url" ]; then
-  USE_URL=true
-fi
 
 # Base command
 CMD=(
@@ -39,10 +39,14 @@ CMD=(
 if [ "$START_IDX" -eq 0 ]; then
   CMD+=(--clean)
 fi
-# Add --use_url if USE_URL is true
-if [ "$USE_URL" = true ]; then
-  CMD+=(--use_url)
+# Add --verbose if VERBOSE is true
+if [ "$VERBOSE" = true ]; then
+  CMD+=(--verbose)
 fi
+# # Add --use_url if USE_URL is true
+# if [ "$USE_URL" = true ]; then
+#   CMD+=(--use_url)
+# fi
 
 # Run the command
 "${CMD[@]}"

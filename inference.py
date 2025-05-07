@@ -94,17 +94,17 @@ def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
 
         # Append instruction based on mode
         if mode == "text":
-            prompt += "\n\nInstruction: Think step by step before making a decision. Then, explicitly state your final choice after the special word '####Final Answer:'. Please do NOT use programming code."
+            prompt += "\n\nInstruction: Think step by step before making a decision. Then, explicitly state your final choice after the special word '####Final Answer:' including (a), (b), (c), or (d). Please do NOT use programming code."
         if mode == "code":
-            prompt += ("\n\nInstruction: Please write a single Python function enclosed in ```python to answer the question and you must include print statements to show the final answer using 'Final Answer:'. "
-                       "Generate the code only once. Do not regenerate the code repeatedly, even if the code does not work. Give your final answer in one sentence at the end the special word '####Final Answer:'. No other text.")
+            prompt += "\n\nInstruction: Please write a Python programming code to answer the question. Show me the complete code. You must include print statements at the end of your code to show the final answer using '####Final Answer:' including (a), (b), (c), or (d)."
+            llm.create_a_thread()
 
         if verbose:
             print(f"\n=== Question {total_questions} [{mode}] ===")
             print(prompt)
 
         # Query LLM
-        response = llm.query_llm(step='inference', content=prompt, mode=mode, assistant=False, verbose=verbose)
+        response = llm.query_llm(step='inference', content=prompt, mode=mode, assistant=(mode=='code'), verbose=verbose)
 
         # Extract and validate answer
         selected_option = parse_answer(response)
@@ -192,7 +192,7 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
             prompt += "Instruction: Analyze this image and answer the question. Think step by step before making a decision. Then, explicitly state your final choice after the special word 'Final Answer:'."
 
             # Branch based on the model type for handling images
-            if re.search(r'gpt', model, flags=re.IGNORECASE) or re.search(r'o1', model, flags=re.IGNORECASE) or re.search(r'o3', model, flags=re.IGNORECASE) or re.search(r'llama-4', model, flags=re.IGNORECASE):
+            if utils.check_openai_models(args) or re.search(r'llama-4', model, flags=re.IGNORECASE):
                 # ---------------------------
                 # OpenAI API
                 messages = [

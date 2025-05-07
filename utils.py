@@ -519,6 +519,13 @@ def generate_multiple_choice(correct_answer, incorrect_answers):
     return labeled_answers, correct_letter
 
 
+def check_openai_models(args):
+    if re.search(r'gpt', args['models']['llm']) is not None or re.search(r'o[0-9]', args['models']['llm']) is not None:
+        return True
+    else:
+        return False
+
+
 def print_and_save_qa(qa, titles, radius, csv_file='output/qa_data.csv', verbose=False):
     question, question_dir, template, rephrased_question, filled_values, data_var1, correct_answer, incorrect_answer, latlong1 \
         = qa['question'], qa['question_dir'], qa['template'], qa['rephrased_question'], qa['filled_values'], qa['data_var1'], qa['correct_answer'], qa['incorrect_answers'], qa['latlong1']

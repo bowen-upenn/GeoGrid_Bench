@@ -46,8 +46,7 @@ class QueryLLM:
         self.use_url = args['models']['use_url']
         if self.use_url:
             # Load the URL for internal OpenAI models
-            assert re.search(r'gpt', self.args['models']['llm']) or \
-                re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None
+            assert utils.check_openai_models(self.args)
 
             with open("api_tokens/model_url.txt", "r") as url_file:
                 self.url = url_file.read().strip()
@@ -55,20 +54,18 @@ class QueryLLM:
                 self.user = user_name_file.read().strip()
         else:
             # OpenAI API
-            if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
-                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None:
+            if utils.check_openai_models(self.args):
                 with open("api_tokens/openai_key.txt", "r") as api_key_file:
                     self.api_key = api_key_file.read().strip()
                 self.client = OpenAI(api_key=self.api_key)
 
-                if self.step == 'data_gen':
+                if self.step == 'data_gen' or (self.args['models']['use_assistant'] and re.search(r'o[0-9]', self.args['models']['llm']) is None):
                     self.assistant = self.client.beta.assistants.create(
                         name="Data Analyzer",
-                        instructions="You are a helpful assistant that analyze climate data using language, programming codes, and tabular data.",
+                        instructions="You are a helpful assistant that analyze climate data using programming codes.",
                         tools=[{"type": "code_interpreter"}],
                         model=self.args['models']['llm'],
                     )
-                    self.thread = None
 
             # Google Gemini API
             elif re.search(r'gemini', self.args['models']['llm']) is not None:
@@ -181,7 +178,7 @@ class QueryLLM:
         else:
             raise ValueError(f'Invalid step: {step}')
 
-        if not assistant:
+        if not utils.check_openai_models(self.args) or re.search(r'o[0-9]', self.args['models']['llm']) is not None or not assistant:
             if self.use_url:
                 # We use URL to access internal models only during inference, where we do not use the assistant API
                 data = {
@@ -205,9 +202,7 @@ class QueryLLM:
                     response = ""
             else:
                 # Call OpenAI API for GPT models by default
-                if re.search(r'gpt', self.args['models']['llm']) is not None or re.search(r'gpt', self.args['models']['llm']) is not None \
-                    or re.search(r'o1', self.args['models']['llm']) is not None or re.search(r'o3', self.args['models']['llm']) is not None \
-                    or re.search(r'llama-4', self.args['models']['llm']) is not None:
+                if utils.check_openai_models(self.args) or re.search(r'llama-4', self.args['models']['llm']) is not None:
                     response = self.client.chat.completions.create(
                         model=self.args['models']['llm'],
                         messages=[{"role": "user",
@@ -346,7 +341,8 @@ class QueryLLM:
 
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=self.thread.id,
-                assistant_id=self.assistant.id
+                assistant_id=self.assistant.id,
+                instructions="Please address the user with your Python code. The user has a premium account."
             )
 
             if run.status == 'completed':
@@ -354,9 +350,25 @@ class QueryLLM:
                     thread_id=self.thread.id
                 )
                 response = response.data[0].content[0].text.value
-                if verbose:
-                    print(f'{utils.Colors.OKGREEN}{step.capitalize()}:{utils.Colors.ENDC} {response}')
             else:
                 response = None
+            # if run.status == 'completed':
+            #     response = self.client.beta.threads.messages.list(
+            #         thread_id=self.thread.id
+            #     )
+            #     print('raw response', response)
+            #     response = response.data[0].content[0].text.value
+            #     if verbose:
+            #         print(f'{utils.Colors.OKGREEN}{step.capitalize()}:{utils.Colors.ENDC} {response}')
+            # else:
+            #     response = None
+
+            # print('original response', response)
+            # if step == 'inference':
+                # execution_result, success = self.execute_code(response)
+                # print('execution_result', execution_result)
+                # if success:
+                #     response = execution_result
+                # print('final response', response)
 
         return response
