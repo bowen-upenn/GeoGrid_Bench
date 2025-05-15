@@ -1,6 +1,5 @@
 ## 📊 Benchmark Data
-We release the benchmark data of on [Google Drive](https://drive.google.com/drive/folders/1Kfs1YHHuTPIJt5OxZktBTtCc2sUIZWHA?usp=sharing
-) and [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
+We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
 
 
 ## 🔗 Dependencies
