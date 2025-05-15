@@ -1,3 +1,5 @@
+## This is the official repository of the benchmark paper [GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
+
 ## 📊 Benchmark Data
 We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
 
@@ -86,6 +88,3 @@ bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
 
 > 💡Note that if you set [START_IDX] to 0, a new result file will be created and the old one will be removed. Otherwise, the script will append new evaluation results to the existing result file.
 
-
-## Reference
-- [ScienceAgentBench](https://arxiv.org/pdf/2410.05080)
