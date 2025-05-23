@@ -1,4 +1,4 @@
-## This is the official repository of the benchmark paper [GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
+## This is the official repository of the benchmark paper [GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?](https://arxiv.org/pdf/2505.10714)
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B)](https://arxiv.org/pdf/2505.10714)
 [![Data](https://img.shields.io/badge/🤗HuggingFace-Link-FFA500)](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
@@ -76,6 +76,7 @@ We provide ready-to-use **inference scripts** in the [scripts/](scripts/) direct
   - Llama-4-Scout: ```run_inference_llama4_scout.sh```
   - Llama-3.2-11B-Vision: ```run_inference_llama_3p2_11b_vision.sh```
   - Llama-3.2-3B: ```run_inference_llama_3p2_3b.sh```
+  - Llama-3.1-8B: ```run_inference_llama_3p1_8b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
 ```bash
