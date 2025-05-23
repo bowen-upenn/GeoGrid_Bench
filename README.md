@@ -1,6 +1,29 @@
+## This is the official repository of the benchmark paper [GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?](https://arxiv.org/pdf/2505.10714)
+
+[![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B)](https://arxiv.org/pdf/2505.10714)
+[![Data](https://img.shields.io/badge/🤗HuggingFace-Link-FFA500)](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
+
+We present GeoGrid-Bench, a benchmark designed to evaluate the ability of foundation models to understand geo-spatial data in the grid structure. Geo-spatial datasets pose distinct challenges due to their dense numerical values, strong spatial and temporal dependencies, and unique multimodal representations including tabular data, heatmaps, and geographic visualizations. To assess how foundation models can support scientific research in this domain, GeoGrid-Bench features large-scale, real-world data covering 16 climate variables across 150 locations and extended time frames. The benchmark includes approximately 3k question-answer pairs, systematically generated from 8 domain expert-curated templates to reflect practical tasks encountered by human scientists. These range from basic queries at a single location and time to complex spatiotemporal comparisons across regions and periods. Our evaluation reveals that vision-language models perform best overall, and we provide a fine-grained analysis of the strengths and limitations of different foundation models in different geo-spatial tasks. This benchmark offers clearer insights into how foundation models can be effectively applied to geo-spatial data analysis and used to support scientific research.
+
+This work is a collaboration between Argonne National Laboratory and the University of Pennsylvania. For questions or feedback, please submit an issue on this repository or contact bwjiang@seas.upenn.edu via email.
+
+<p align="center">
+<img src=figures/image_formats.png/>
+</p>
+
 ## 📊 Benchmark Data
-We release the benchmark data of on [Google Drive](https://drive.google.com/drive/folders/1Kfs1YHHuTPIJt5OxZktBTtCc2sUIZWHA?usp=sharing
-) and [🤗Huggingface](TODO), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
+We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and **put them under the ```data/benchmark/``` directory**.
+
+
+## 🐰 Citation
+If you find our work inspires you, please consider citing it. Thank you!
+
+    @article{jiang2025geogrid,
+      title={GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?},
+      author={Jiang, Bowen and Xie, Yangxinyu and Wang, Xiaomeng and He, Jiashu and Bergerson, Joshua and Hutchison, John K and Branham, Jordan and Taylor, Camillo J and Mallick, Tanwi},
+      journal={arXiv preprint arXiv:2505.10714},
+      year={2025}
+    }
 
 
 ## 🔗 Dependencies
@@ -9,6 +32,7 @@ We use Conda environment. Please run the following commands to create the enviro
     conda create -n geospatial python=3.9
     conda activate geospatial
     pip install -r requirements.txt
+
 
 ## 🚀 Running Inference on Benchmark Data
 
@@ -43,25 +67,17 @@ huggingface-cli login
 ### Step 2 - Running Inference Scripts
 We provide ready-to-use **inference scripts** in the [scripts/](scripts/) directory for evaluating the following models:
 - **[OpenAI Models](https://platform.openai.com/docs/models)**
-  - GPT-4.5: ```run_inference_gpt_4p5_preview.sh```
-  - o3-mini: ```run_inference_o3_mini.sh```
-  - o1: ```run_inference_o1.sh```
+  - o4-mini: ```run_inference_o4_mini.sh```
+  - GPT-4.1: ```run_inference_gpt_4p1.sh```
+  - GPT-4.1-mini: ```run_inference_gpt_4p1_mini.sh```
   - GPT-4o: ```run_inference_gpt_4o.sh```
   - GPT-4o-mini: ```run_inference_gpt_4o_mini.sh```
-- **[Google Gemini Models](https://ai.google.dev/gemini-api/docs/models)**
-  - Gemini-2.0-Flash: ```run_inference_gemini_2p0_flash.sh```
-  - Gemini-1.5-Flash: ```run_inference_gemini_1p5_flash.sh```
-- **[Anthropic Claude Models](https://docs.anthropic.com/en/docs/about-claude/models/all-models)**
-  - Claude-3.7-Sonnet: ```run_inference_claude_3p7_sonnet.sh```
-  - Claude-3.5-Haiku: ```run_inference_claude_3p5_haiku.sh```
 - **[Meta Llama Models](https://docs.lambda.ai/public-cloud/lambda-inference-api/?_gl=1*1yqhedk*_gcl_aw*R0NMLjE3NDQwOTAyNjIuQ2owS0NRanc3ODJfQmhEakFSSXNBQlR2X0pEWUpQRTRhLXJMY0xjeWZYYUZrRzE4Q196MG0zdjY0cmQtX09FYm5iRHlrek95QWVDVVZxVWFBbnhYRUFMd193Y0I.*_gcl_au*NTQ3OTExNDIzLjE3NDQwOTAyNjE.*_ga*MTA0MjYwNjUyMS4xNzQ0MDkwMjYy*_ga_43EZT1FM6Q*MTc0NDA5MDI2MS4xLjAuMTc0NDA5MDI2MS42MC4wLjY1NjAyNzc2NA..)**
   - Llama-4-Maverick: ```run_inference_llama4_maverick.sh```
   - Llama-4-Scout: ```run_inference_llama4_scout.sh```
-  - Llama-3.3-70B: ```run_inference_llama3p3_70b.sh```
-  - Llama-3.2-90B-Vision: ```run_inference_llama_3p2_90b_vision.sh```
   - Llama-3.2-11B-Vision: ```run_inference_llama_3p2_11b_vision.sh```
   - Llama-3.2-3B: ```run_inference_llama_3p2_3b.sh```
-  - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
+  - Llama-3.1-8B: ```run_inference_llama_3p1_8b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
 ```bash
@@ -72,7 +88,7 @@ bash scripts/run_inference_gpt4o.sh [MODALITY] [START_IDX] [END_IDX]
 > 💡Note that the ```image``` modality is only available for GPT-4o, GPT-4o-mini, o1, GPT-4.5-Preview, Claude-3.5-Haiku, Claude-3.7-Sonnet, Gemini-2.0-Flash, Gemini-1.5-Flash, Llama-4-Maverick, Llama-4-Scout, Llama-3.2-90B-Vision, and Llama-3.2-11B-Vision.
 
 - **[START_IDX]** and **[END_IDX]** define the range of question indices for inference. The script will run inference starting at [START_IDX] and ending just before [END_IDX] (non-inclusive). 
-> 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset.
+> 💡Note that whenever you set [END_IDX] to -1, the script will run inference from [START_IDX] until the end of the dataset. Meanwhile, if you set [START_IDX] to 0, the script will clean up the exsiting file and start clean. Otherwise, the script will append new evaluation results to the existing result file.
 
 - If you are using internal OpenAI models accessed by an URL, add `use_url` to the command line. For example:
 ```bash
@@ -85,8 +101,14 @@ bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
 
 **Evaluation results** will be automatically saved in the [result/](result/) directory, with filenames that include both the model name and the data modality for easy identification. For example, ```eval_results_gpt-4o_text.json```.
 
-> 💡Note that if you set [START_IDX] to 0, a new result file will be created and the old one will be removed. Otherwise, the script will append new evaluation results to the existing result file.
 
+## 🧩 All Template Questions
 
-## Reference
-- [ScienceAgentBench](https://arxiv.org/pdf/2410.05080)
+<p align="center">
+<img src=figures/templates.png>
+</p>
+
+## 💬 Interaction Overview
+<p align="center">
+<img src=figures/overview.png>
+</p>
