@@ -3,10 +3,12 @@
 [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B)](https://arxiv.org/pdf/2505.10714)
 [![Data](https://img.shields.io/badge/🤗HuggingFace-Link-FFA500)](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
 
+We present GeoGrid-Bench, a benchmark designed to evaluate the ability of foundation models to understand geo-spatial data in the grid structure. Geo-spatial datasets pose distinct challenges due to their dense numerical values, strong spatial and temporal dependencies, and unique multimodal representations including tabular data, heatmaps, and geographic visualizations. To assess how foundation models can support scientific research in this domain, GeoGrid-Bench features large-scale, real-world data covering 16 climate variables across 150 locations and extended time frames. The benchmark includes approximately 3,200 question-answer pairs, systematically generated from 8 domain expert-curated templates to reflect practical tasks encountered by human scientists. These range from basic queries at a single location and time to complex spatiotemporal comparisons across regions and periods. Our evaluation reveals that vision-language models perform best overall, and we provide a fine-grained analysis of the strengths and limitations of different foundation models in different geo-spatial tasks. This benchmark offers clearer insights into how foundation models can be effectively applied to geo-spatial data analysis and used to support scientific research.
+
+
 <p align="center">
 <img src=image_formats.png/>
 </p>
-
 
 ## 📊 Benchmark Data
 We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and **put them under the ```data/benchmark/``` directory**.
@@ -64,25 +66,16 @@ huggingface-cli login
 ### Step 2 - Running Inference Scripts
 We provide ready-to-use **inference scripts** in the [scripts/](scripts/) directory for evaluating the following models:
 - **[OpenAI Models](https://platform.openai.com/docs/models)**
-  - GPT-4.5: ```run_inference_gpt_4p5_preview.sh```
-  - o3-mini: ```run_inference_o3_mini.sh```
-  - o1: ```run_inference_o1.sh```
+  - o4-mini: ```run_inference_o4_mini.sh```
+  - GPT-4.1: ```run_inference_gpt_4p1.sh```
+  - GPT-4.1-mini: ```run_inference_gpt_4p1_mini.sh```
   - GPT-4o: ```run_inference_gpt_4o.sh```
   - GPT-4o-mini: ```run_inference_gpt_4o_mini.sh```
-- **[Google Gemini Models](https://ai.google.dev/gemini-api/docs/models)**
-  - Gemini-2.0-Flash: ```run_inference_gemini_2p0_flash.sh```
-  - Gemini-1.5-Flash: ```run_inference_gemini_1p5_flash.sh```
-- **[Anthropic Claude Models](https://docs.anthropic.com/en/docs/about-claude/models/all-models)**
-  - Claude-3.7-Sonnet: ```run_inference_claude_3p7_sonnet.sh```
-  - Claude-3.5-Haiku: ```run_inference_claude_3p5_haiku.sh```
 - **[Meta Llama Models](https://docs.lambda.ai/public-cloud/lambda-inference-api/?_gl=1*1yqhedk*_gcl_aw*R0NMLjE3NDQwOTAyNjIuQ2owS0NRanc3ODJfQmhEakFSSXNBQlR2X0pEWUpQRTRhLXJMY0xjeWZYYUZrRzE4Q196MG0zdjY0cmQtX09FYm5iRHlrek95QWVDVVZxVWFBbnhYRUFMd193Y0I.*_gcl_au*NTQ3OTExNDIzLjE3NDQwOTAyNjE.*_ga*MTA0MjYwNjUyMS4xNzQ0MDkwMjYy*_ga_43EZT1FM6Q*MTc0NDA5MDI2MS4xLjAuMTc0NDA5MDI2MS42MC4wLjY1NjAyNzc2NA..)**
   - Llama-4-Maverick: ```run_inference_llama4_maverick.sh```
   - Llama-4-Scout: ```run_inference_llama4_scout.sh```
-  - Llama-3.3-70B: ```run_inference_llama3p3_70b.sh```
-  - Llama-3.2-90B-Vision: ```run_inference_llama_3p2_90b_vision.sh```
   - Llama-3.2-11B-Vision: ```run_inference_llama_3p2_11b_vision.sh```
   - Llama-3.2-3B: ```run_inference_llama_3p2_3b.sh```
-  - Llama-3.1-405B: ```run_inference_llama_3p1_405b.sh```
 
  🔮 **To run evaluation for a specific model, simply execute the corresponding script. For example:**
 ```bash
