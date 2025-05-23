@@ -178,7 +178,8 @@ class QueryLLM:
         else:
             raise ValueError(f'Invalid step: {step}')
 
-        if not utils.check_openai_models(self.args) or re.search(r'o[0-9]', self.args['models']['llm']) is not None or not assistant:
+        # if (not utils.check_openai_models(self.args)) or (re.search(r'o[0-9]', self.args['models']['llm']) is not None) or (not assistant):
+        if not assistant:
             if self.use_url:
                 # We use URL to access internal models only during inference, where we do not use the assistant API
                 data = {
@@ -342,16 +343,19 @@ class QueryLLM:
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=self.thread.id,
                 assistant_id=self.assistant.id,
-                instructions="Please address the user with your Python code. The user has a premium account."
+                tool_choice="required"
             )
 
             if run.status == 'completed':
                 response = self.client.beta.threads.messages.list(
                     thread_id=self.thread.id
                 )
-                response = response.data[0].content[0].text.value
+                try:
+                    response = response.data[0].content[0].text.value
+                except:
+                    response = ""
             else:
-                response = None
+                response = ""
             # if run.status == 'completed':
             #     response = self.client.beta.threads.messages.list(
             #         thread_id=self.thread.id

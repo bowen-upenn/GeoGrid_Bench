@@ -1,8 +1,8 @@
 [
     {
-        "question": "Which region in the New York, New York, United States experienced the largest increase in maximum annual temperature during historical period?",
+        "question": "Which region in the Philadelphia, Pennsylvania, United States experienced the largest increase in maximum annual temperature during historical period?",
         "filled_values": {
-            "location1": "New York, New York, United States",
+            "location1": "Philadelphia, Pennsylvania, United States",
             "climate_variable1": "maximum annual temperature",
             "time_frame1": "historical period"
         },

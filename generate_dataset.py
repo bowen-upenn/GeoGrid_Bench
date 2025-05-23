@@ -74,7 +74,7 @@ class BenchmarkDatasetGenerator:
         total = self.num_samples if self.num_samples > 0 else len(samples)
         all_failed_samples = []
         for idx, sample in tqdm(enumerate(samples), total=total):
-            if idx != 1:
+            if idx != 0:
                 continue
             if self.num_samples > 0 and idx >= self.num_samples:
                 break
@@ -144,6 +144,7 @@ class BenchmarkDatasetGenerator:
         # in vis_outputs: heatmap, heatmap_with_text, overlay, overlay_path, overlay_width, overlay_height, angle, heatmap_rect
         # in oracle_codes: question_dir, ppocr, llm, template, data_var1, angle1, heatmap_rect1, overlay1, overlay_path1, location_description1,
         # location_description2, angle2, overlay_path2, data_var2, data_var3, data_var4, data_var5, data_var6, data_var7, data_var8,
+        print('data_tables', data_tables)
         correct_ans, incorrect_ans = oracle.oracle_codes(
             question_dir,
             self.ocr,
