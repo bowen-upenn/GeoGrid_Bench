@@ -7,7 +7,7 @@ We present GeoGrid-Bench, a benchmark designed to evaluate the ability of founda
 
 
 <p align="center">
-<img src=image_formats.png/>
+<img src=figures/image_formats.png/>
 </p>
 
 ## 📊 Benchmark Data
@@ -98,3 +98,15 @@ bash scripts/run_inference_gpt4o.sh text 0 -1 use_url
 ### Step 3 - Saving Inference Results
 
 **Evaluation results** will be automatically saved in the [result/](result/) directory, with filenames that include both the model name and the data modality for easy identification. For example, ```eval_results_gpt-4o_text.json```.
+
+
+## 🧩 All Template Questions
+
+<p align="center">
+<img src=figures/templates.png>
+</p>
+
+## 💬 Interaction Overview
+<p align="center">
+<img src=figures/overview.png>
+</p>
