@@ -1,5 +1,9 @@
 ## This is the official repository of the benchmark paper [GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
 
+[![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B)](https://arxiv.org/pdf/2505.10714)
+[![Data](https://img.shields.io/badge/🤗HuggingFace-Link-FFA500)](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench)
+
+ 
 ## 📊 Benchmark Data
 We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and put them under the ```data/benchmark/``` directory.
 
