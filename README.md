@@ -12,12 +12,24 @@
 We release the benchmark data of on [🤗Huggingface](https://huggingface.co/datasets/bowen-upenn/GeoGrid_Bench), including question-answer pairs, corresponding images, and other meta data. Please download the folder `image_data/` and the file `qa_data.csv`, and **put them under the ```data/benchmark/``` directory**.
 
 
+## 🐰 Citation
+If you find our work inspires you, please consider citing it. Thank you!
+
+    @article{jiang2025geogrid,
+      title={GeoGrid-Bench: Can Foundation Models Understand Multimodal Gridded Geo-Spatial Data?},
+      author={Jiang, Bowen and Xie, Yangxinyu and Wang, Xiaomeng and He, Jiashu and Bergerson, Joshua and Hutchison, John K and Branham, Jordan and Taylor, Camillo J and Mallick, Tanwi},
+      journal={arXiv preprint arXiv:2505.10714},
+      year={2025}
+    }
+
+
 ## 🔗 Dependencies
 We use Conda environment. Please run the following commands to create the environment and install all the requirements:
     
     conda create -n geospatial python=3.9
     conda activate geospatial
     pip install -r requirements.txt
+
 
 ## 🚀 Running Inference on Benchmark Data
 
