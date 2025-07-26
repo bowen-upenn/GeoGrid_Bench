@@ -44,14 +44,44 @@ def update_accuracy(is_correct, counters, key):
         counters[key]["correct"] += 1
 
 
+def adjust_start_end_index(start, end, result_path):
+    try:
+        with open(result_path, 'r') as f:
+            lines = f.read().splitlines()
+            for line in reversed(lines):
+                record = json.loads(line)
+                if "index" in record:
+                    if start <= record["index"] < end:
+                        start = record["index"] + 1
+                        print(f"Resuming from index {start}")
+                        break
+                elif "row_index" in record:
+                    if start <= record["row_index"] < end:
+                        start = record["row_index"] + 1
+                        print(f"Resuming from index {start}")
+                        break
+            if start == end:
+                print("All questions have been processed. Exiting.")
+                sys.exit(0)
+    except Exception as e:
+        print(f"Failed to load start_idx from result file: {e}")
+        start = 0
+    return start, end
+
 def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
+
+    assert result_path is not None, "result_path must be provided for saving results"
     # only tabular rows
     tab_df = df[df["data_modality"] == "tabular"].reset_index(drop=True)
 
     start = int(args["inference"]["start_idx"])
     end = int(args["inference"]["end_idx"])
+
     if end == -1 or end > len(tab_df):
         end = len(tab_df)
+
+    if args["resume"] and os.path.exists(result_path):
+        start, end = adjust_start_end_index(start, end, result_path)
 
     total_questions = 0
     correct_overall = 0
@@ -136,13 +166,19 @@ def encode_image(path):
 
 
 def process_each_row_image(args, df, llm, verbose=False, result_path=None):
+
+    assert result_path is not None, "result_path must be provided for saving results"
     # all non-tabular rows
     img_df = df[df["data_modality"] != "tabular"].reset_index(drop=True)
-
+    
     start = int(args["inference"]["start_idx"])
     end = int(args["inference"]["end_idx"])
+
     if end == -1 or end > len(img_df):
         end = len(img_df)
+
+    if args["resume"] and os.path.exists(result_path):
+        start, end = adjust_start_end_index(start, end, result_path)
 
     total = 0
     correct_overall = 0
@@ -220,6 +256,12 @@ def process_each_row_image(args, df, llm, verbose=False, result_path=None):
                     ],
                 }
             ]
+        elif re.search(r'InternVL', model, flags=re.IGNORECASE):
+            from internvl_util import load_image, build_transform
+            messages = {
+                'image': load_image(image_path, max_num=12),
+                'text': prompt
+            }
         else:
             # ---------------------------
             # Llama
@@ -288,6 +330,7 @@ def main():
     config["inference"]["start_idx"] = args.start_idx
     config["inference"]["end_idx"] = args.end_idx
     config["inference"]["verbose"] = args.verbose
+    config['resume'] = args.resume
 
     if args.clean and os.path.exists(args.result_path):
         os.remove(args.result_path)  # Remove the file

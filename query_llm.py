@@ -2,9 +2,6 @@ import os
 os.environ['HF_HOME'] = './hf_home'
 os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
 
-# from huggingface_hub import login
-# login("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")
-
 # spin up 16 threads (or however many cores you have)
 os.environ["OMP_NUM_THREADS"]     = "16"
 os.environ["MKL_NUM_THREADS"]     = "16"
@@ -29,6 +26,7 @@ import requests
 # from google.genai.types import Part, UserContent, ModelContent
 # from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
 # from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+from transformers import AutoModel, AutoTokenizer, AutoProcessor, GenerationConfig
 # from qwen_vl_utils import process_vision_info
 
 import prompts
@@ -101,6 +99,17 @@ class QueryLLM:
                     self.model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto')
                 self.processor = AutoProcessor.from_pretrained(self.model_path)
 
+            elif re.search(r'InternVL', self.args['models']['llm']) is not None:
+                self.model_path = self.args['models']['llm']
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True, use_fast=False)
+                self.model = AutoModel.from_pretrained(
+                            self.model_path,
+                            torch_dtype=torch.bfloat16,
+                            low_cpu_mem_usage=True,
+                            use_flash_attn=True,
+                            trust_remote_code=True,
+                            device_map="auto").eval()
+
             elif re.search(r'Qwen', self.args['models']['llm']) is not None:
                 self.model_path = self.args['models']['llm']
                 self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -124,8 +133,10 @@ class QueryLLM:
 
 
     def create_a_thread(self):
-        self.thread = self.client.beta.threads.create()
-
+        try:
+            self.thread = self.client.beta.threads.create()
+        except:
+            pass
 
     def extract_code(self, response):
         """
@@ -246,6 +257,16 @@ class QueryLLM:
                     # Adjust max_new_tokens and other parameters as needed
                     outputs = self.model.generate(**inputs, max_new_tokens=1024, eos_token_id=eos_token_id, pad_token_id=pad_token_id)
                     response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+                elif re.search(r'InternVL', self.args['models']['llm']) is not None:
+                    generation_config = dict(max_new_tokens=1024, do_sample=True)
+                    if mode == 'image':
+                        pixel_values = prompt['image'].to(torch.bfloat16).cuda()
+                        question = prompt['text']
+                        response = self.model.chat(self.tokenizer, pixel_values, question, generation_config)
+                    else:
+                        response, _ = self.model.chat(self.tokenizer, None, prompt, generation_config, history=None, return_history=True)
+
 
                 elif re.search(r'Qwen', self.args['models']['llm']) is not None:
                     if mode == 'image':
