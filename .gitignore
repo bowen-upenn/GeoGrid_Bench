@@ -11,3 +11,6 @@ result/
 hf_home/
 data/image_data/
 qa_data.csv
+remove.py
+run_inference_task.sh
+set_affinity_gpu_polaris.sh
