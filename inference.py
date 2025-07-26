@@ -12,6 +12,7 @@ from PIL import Image
 
 from query_llm import QueryLLM
 import utils
+import prompts
 
 
 def parse_answer(response):
@@ -68,7 +69,7 @@ def adjust_start_end_index(start, end, result_path):
         start = 0
     return start, end
 
-def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
+def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None, few_shots=False):
 
     assert result_path is not None, "result_path must be provided for saving results"
     # only tabular rows
@@ -90,7 +91,13 @@ def process_each_row_text(args, df, llm, mode, verbose=False, result_path=None):
 
     for idx, row in tqdm(tab_df.iloc[start:end].iterrows(), total=end-start):
         total_questions += 1
-        prompt = row["Question"]
+
+        prompt = ""
+        if few_shots:
+            template = row["Template Question"]
+            prompt += prompts.few_shot_examples(template)
+
+        prompt += row["Question"]
         prompt += "\n\nOptions:\n" + row["All Options"]
 
         if row["Type"] == "trend":
@@ -318,7 +325,8 @@ def main():
     p.add_argument("--start_idx", type=int, default=0)
     p.add_argument("--end_idx", type=int, default=-1)
     p.add_argument("--resume", action="store_true")
-    p.add_argument('--clean', dest='clean', action='store_true', help='Remove existing data files and start clean')
+    p.add_argument("--clean", dest='clean', action='store_true', help='Remove existing data files and start clean')
+    p.add_argument("--few_shots", action="store_true")
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args()
 
@@ -330,6 +338,7 @@ def main():
     config["inference"]["start_idx"] = args.start_idx
     config["inference"]["end_idx"] = args.end_idx
     config["inference"]["verbose"] = args.verbose
+    config["inference"]["few_shots"] = args.few_shots
     config['resume'] = args.resume
 
     if args.clean and os.path.exists(args.result_path):
@@ -342,7 +351,9 @@ def main():
     for mode in modes:
         print(f"\n===== Running {mode} mode =====")
         if mode in ("text","code"):
-            agg = process_each_row_text(config, df, llm, mode, args.verbose, args.result_path)
+            agg = process_each_row_text(config, df, llm, mode, args.verbose, args.result_path, args.few_shots)
+            if args.few_shots:
+                args.result_path = f"{args.result_path[:-6]}_fs.jsonl"
         else:
             agg = process_each_row_image(config, df, llm, args.verbose, args.result_path)
 
