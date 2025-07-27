@@ -12,7 +12,7 @@ END_IDX="${3:--1}"   # If -1 is passed, it will be ignored and the entire datase
 
 # Arguments for the Python script
 MODEL_NAME="OpenGVLab/InternVL2_5-8B"
-QUESTION_PATH="hf://datasets/bowen-upenn/GeoGrid_Bench/qa_data.csv"
+QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_InternVL2_5-8B_${MODALITY}.jsonl"
 
 # Base command

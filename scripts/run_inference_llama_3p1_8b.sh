@@ -24,6 +24,8 @@ CMD=(
   --result_path "$RESULT_PATH"
   --start_idx "$START_IDX"
   --end_idx "$END_IDX"
+  --few_shots
+  --resume
 )
 
 # Add --clean only if START_IDX is 0

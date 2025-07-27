@@ -13,7 +13,7 @@ END_IDX="${3:--1}"   # If -1 is passed, it will be ignored and the entire datase
 # Arguments for the Python script
 MODEL_NAME="Qwen/Qwen2.5-VL-7B-Instruct"
 QUESTION_PATH="data/benchmark/qa_data.csv"
-RESULT_PATH="result/eval_results_Qwen2.5-VL-7B-Instruct_${MODALITY}.jsonl"
+RESULT_PATH="result/few_shot/eval_results_Qwen2.5-VL-7B-Instruct_${MODALITY}.jsonl"
 
 # Base command
 CMD=(
@@ -25,6 +25,7 @@ CMD=(
   --start_idx "$START_IDX"
   --end_idx "$END_IDX"
   --resume
+  --few_shots
 )
 
 # Add --clean only if START_IDX is 0

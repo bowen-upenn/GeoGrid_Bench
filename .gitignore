@@ -14,3 +14,4 @@ qa_data.csv
 remove.py
 run_inference_task.sh
 set_affinity_gpu_polaris.sh
+sophia.sh

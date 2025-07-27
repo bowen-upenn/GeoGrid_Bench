@@ -21,7 +21,7 @@ fi
 
 # Arguments for the Python script
 MODEL_NAME="gpt-4.5-preview"
-QUESTION_PATH="output/benchmark/qa_data.csv"
+QUESTION_PATH="data/benchmark/qa_data.csv"
 RESULT_PATH="result/eval_results_${MODEL_NAME}_${MODALITY}.jsonl"
 
 # Base command

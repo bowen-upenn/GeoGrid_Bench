@@ -1,7 +1,8 @@
 import os
 os.environ['HF_HOME'] = './hf_home'
 os.environ['TRANSFORMERS_CACHE'] = './hf_home/hub'
-
+from huggingface_hub import login
+login("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")
 # spin up 16 threads (or however many cores you have)
 os.environ["OMP_NUM_THREADS"]     = "16"
 os.environ["MKL_NUM_THREADS"]     = "16"
@@ -24,9 +25,9 @@ import requests
 # import anthropic
 # from google import genai  # Gemini has conflicting requirements of the environment with OpenAI
 # from google.genai.types import Part, UserContent, ModelContent
-# from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
-# from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
-from transformers import AutoModel, AutoTokenizer, AutoProcessor, GenerationConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoProcessor, GenerationConfig, MllamaForConditionalGeneration
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+# from transformers import AutoModel, AutoTokenizer, AutoProcessor, GenerationConfig
 # from qwen_vl_utils import process_vision_info
 
 import prompts
